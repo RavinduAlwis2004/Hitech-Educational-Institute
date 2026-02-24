@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="HiTech Educational Institute — Learning Management Dashboard" />
+    <title>HiTech Educational Institute</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet" />
+    <link rel="stylesheet" href="css/styles.css" />
+
+    <!-- React 18 -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+</head>
+
+<body>
+    <div id="root"></div>
+    <script>
+        'use strict';
+
+        var ce = React.createElement;
+
+        // =============================================
+        // SIMPLE HASH ROUTER (no dependencies)
+        // =============================================
+        function useHash() {
+            var _s = React.useState(window.location.hash || '#/');
+            var hash = _s[0];
+            var setHash = _s[1];
+
+            React.useEffect(function () {
+                function onHashChange() { setHash(window.location.hash || '#/'); }
+                window.addEventListener('hashchange', onHashChange);
+                return function () { window.removeEventListener('hashchange', onHashChange); };
+            }, []);
+
+            return hash;
+        }
+
+        function navigateTo(path) {
+            window.location.hash = '#' + path;
+        }
+
+        // =============================================
+        // LOGIN COMPONENT
+        // =============================================
+        function Login() {
+            var _email = React.useState('');
+            var email = _email[0]; var setEmail = _email[1];
+
+            var _pw = React.useState('');
+            var password = _pw[0]; var setPassword = _pw[1];
+
+            var _err = React.useState('');
+            var error = _err[0]; var setError = _err[1];
+
+            var _ld = React.useState(false);
+            var loading = _ld[0]; var setLoading = _ld[1];
+
+            function handleSubmit(ev) {
+                ev.preventDefault();
+                setError('');
+                setLoading(true);
+                setTimeout(function () {
+                    if (email === 'admin@hitech.edu' && password === 'password123') {
+                        localStorage.setItem('hitech_auth', JSON.stringify({
+                            user: 'Admin',
+                            email: email,
+                            role: 'Administrator',
+                            loggedInAt: new Date().toISOString()
+                        }));
+                        navigateTo('/dashboard');
+                    } else {
+                        setError('Invalid email or password. Please try again.');
+                    }
+                    setLoading(false);
+                }, 1200);
+            }
+
+            return ce('div', { className: 'login-page' },
+                ce('div', { className: 'login-card' },
+                    ce('div', { className: 'login-logo' },
+                        ce('div', { className: 'login-logo-icon' }, '\uD83C\uDF93'),
+                        ce('h1', { className: 'login-title' }, 'HiTech Institute')
+                    ),
+                    ce('p', { className: 'login-subtitle' }, 'Sign in to your learning portal'),
+
+                    error ? ce('div', { className: 'error-msg' }, error) : null,
+
+                    ce('form', { onSubmit: handleSubmit },
+                        ce('div', { className: 'form-group' },
+                            ce('label', { className: 'form-label', htmlFor: 'email' }, 'Email Address'),
+                            ce('input', {
+                                id: 'email', className: 'form-input', type: 'email',
+                                placeholder: 'you@hitech.edu', value: email,
+                                onChange: function (ev) { setEmail(ev.target.value); },
+                                required: true, autoComplete: 'email'
+                            })
+                        ),
+                        ce('div', { className: 'form-group' },
+                            ce('label', { className: 'form-label', htmlFor: 'password' }, 'Password'),
+                            ce('input', {
+                                id: 'password', className: 'form-input', type: 'password',
+                                placeholder: '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022', value: password,
+                                onChange: function (ev) { setPassword(ev.target.value); },
+                                required: true, autoComplete: 'current-password'
+                            })
+                        ),
+                        ce('button', {
+                            id: 'login-submit', className: 'login-btn',
+                            type: 'submit', disabled: loading
+                        },
+                            loading
+                                ? ce(React.Fragment, null, ce('span', { className: 'spinner' }), 'Signing in\u2026')
+                                : 'Sign In'
+                        )
+                    ),
+
+                    ce('div', { className: 'login-demo-hint' },
+                        ce('p', null,
+                            'Demo credentials:', ce('br', null),
+                            ce('code', null, 'admin@hitech.edu'), ' / ', ce('code', null, 'password123')
+                        )
+                    ),
+                    ce('div', { className: 'login-footer' }, '\u00A9 2026 HiTech Educational Institute')
+                )
+            );
+        }
+
+        // =============================================
+        // DASHBOARD COMPONENT
+        // =============================================
+        function Dashboard() {
+            var auth = JSON.parse(localStorage.getItem('hitech_auth') || '{}');
+
+            React.useEffect(function () {
+                if (!auth.user) navigateTo('/');
+            }, []);
+
+            if (!auth.user) return null;
+
+            function handleLogout() {
+                localStorage.removeItem('hitech_auth');
+                navigateTo('/');
+            }
+
+            var stats = [
+                { icon: '\uD83D\uDC68\u200D\uD83C\uDF93', value: '2,847', label: 'Total Students', trend: '+12.5%', up: true },
+                { icon: '\uD83D\uDCDA', value: '186', label: 'Active Courses', trend: '+8.3%', up: true },
+                { icon: '\uD83D\uDCB0', value: '$94.2K', label: 'Monthly Revenue', trend: '+23.1%', up: true },
+                { icon: '\uD83D\uDCCA', value: '91.4%', label: 'Completion Rate', trend: '-2.1%', up: false }
+            ];
+
+            var activities = [
+                { color: 'purple', name: 'Sarah Chen', action: ' enrolled in Advanced React', time: '2 minutes ago' },
+                { color: 'green', name: 'James Wilson', action: ' completed Python Fundamentals', time: '15 minutes ago' },
+                { color: 'orange', name: '', action: 'New course "AI for Beginners" was published', time: '1 hour ago' },
+                { color: 'blue', name: 'Emily Davis', action: ' submitted assignment in Data Science', time: '2 hours ago' },
+                { color: 'purple', name: '12 students', action: ' joined the Web Design cohort', time: '3 hours ago' },
+                { color: 'green', name: '', action: 'Monthly report for January is ready', time: '5 hours ago' }
+            ];
+
+            var chartHeights = [35, 55, 45, 70, 60, 85, 50, 75, 90, 65, 80, 70];
+            var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+            var mainNav = [
+                { icon: '\uD83D\uDCCA', label: 'Dashboard', active: true },
+                { icon: '\uD83D\uDC68\u200D\uD83C\uDF93', label: 'Students', badge: '2.8K' },
+                { icon: '\uD83D\uDCDA', label: 'Courses' },
+                { icon: '\uD83D\uDCC5', label: 'Schedule' }
+            ];
+
+            var mgmtNav = [
+                { icon: '\uD83D\uDCB3', label: 'Payments' },
+                { icon: '\uD83D\uDCDD', label: 'Reports' },
+                { icon: '\u2699\uFE0F', label: 'Settings' }
+            ];
+
+            return ce('div', { className: 'dashboard-layout' },
+                // Sidebar
+                ce('aside', { className: 'sidebar' },
+                    ce('div', { className: 'sidebar-brand' },
+                        ce('div', { className: 'sidebar-brand-icon' }, '\uD83C\uDF93'),
+                        ce('h2', null, 'HiTech', ce('br', null), ce('span', null, 'Educational Institute'))
+                    ),
+                    ce('nav', { className: 'sidebar-nav' },
+                        ce('div', { className: 'nav-section-label' }, 'Main'),
+                        mainNav.map(function (item, i) {
+                            return ce('a', {
+                                className: 'nav-item' + (item.active ? ' active' : ''),
+                                href: '#', key: 'n' + i
+                            },
+                                ce('span', { className: 'nav-item-icon' }, item.icon),
+                                ' ' + item.label,
+                                item.badge ? ce('span', { className: 'nav-item-badge' }, item.badge) : null
+                            );
+                        }),
+                        ce('div', { className: 'nav-section-label' }, 'Management'),
+                        mgmtNav.map(function (item, i) {
+                            return ce('a', { className: 'nav-item', href: '#', key: 'm' + i },
+                                ce('span', { className: 'nav-item-icon' }, item.icon),
+                                ' ' + item.label
+                            );
+                        })
+                    ),
+                    ce('div', { className: 'sidebar-footer' },
+                        ce('div', { className: 'sidebar-user' },
+                            ce('div', { className: 'sidebar-avatar' }, auth.user.charAt(0)),
+                            ce('div', { className: 'sidebar-user-info' },
+                                ce('div', { className: 'sidebar-user-name' }, auth.user),
+                                ce('div', { className: 'sidebar-user-role' }, auth.role)
+                            )
+                        ),
+                        ce('button', { id: 'logout-btn', className: 'logout-btn', onClick: handleLogout },
+                            ce('span', null, '\uD83D\uDEAA'), ' Sign Out'
+                        )
+                    )
+                ),
+
+                // Main Content
+                ce('main', { className: 'main-content' },
+                    ce('header', { className: 'dashboard-header' },
+                        ce('div', { className: 'header-left' },
+                            ce('h1', null, 'Dashboard'),
+                            ce('p', null, 'Welcome back, ' + auth.user + "! Here's what's happening today.")
+                        ),
+                        ce('div', { className: 'header-right' },
+                            ce('button', { className: 'header-icon-btn', title: 'Notifications' },
+                                '\uD83D\uDD14', ce('span', { className: 'badge' })
+                            ),
+                            ce('button', { className: 'header-icon-btn', title: 'Messages' }, '\u2709\uFE0F')
+                        )
+                    ),
+                    ce('div', { className: 'dashboard-content' },
+                        // Stats
+                        ce('div', { className: 'stats-grid' },
+                            stats.map(function (s, i) {
+                                return ce('div', { className: 'stat-card', key: 's' + i },
+                                    ce('div', { className: 'stat-header' },
+                                        ce('div', { className: 'stat-icon' }, s.icon),
+                                        ce('span', { className: 'stat-trend ' + (s.up ? 'up' : 'down') },
+                                            (s.up ? '\u2191 ' : '\u2193 ') + s.trend
+                                        )
+                                    ),
+                                    ce('div', { className: 'stat-value' }, s.value),
+                                    ce('div', { className: 'stat-label' }, s.label)
+                                );
+                            })
+                        ),
+                        // Content Grid
+                        ce('div', { className: 'content-grid' },
+                            // Chart
+                            ce('div', { className: 'content-card' },
+                                ce('div', { className: 'content-card-header' },
+                                    ce('span', { className: 'content-card-title' }, 'Enrollment Overview'),
+                                    ce('span', { className: 'content-card-action' }, 'View Report \u2192')
+                                ),
+                                ce('div', { className: 'chart-area' },
+                                    chartHeights.map(function (h, i) {
+                                        return ce('div', { className: 'chart-bar', key: 'c' + i, style: { height: h + '%' } });
+                                    })
+                                ),
+                                ce('div', { className: 'chart-labels' },
+                                    months.map(function (m, i) {
+                                        return ce('span', { key: 'l' + i }, m);
+                                    })
+                                )
+                            ),
+                            // Activity
+                            ce('div', { className: 'content-card' },
+                                ce('div', { className: 'content-card-header' },
+                                    ce('span', { className: 'content-card-title' }, 'Recent Activity'),
+                                    ce('span', { className: 'content-card-action' }, 'See All \u2192')
+                                ),
+                                ce('div', { className: 'activity-list' },
+                                    activities.map(function (a, i) {
+                                        return ce('div', { className: 'activity-item', key: 'a' + i },
+                                            ce('div', { className: 'activity-dot ' + a.color }),
+                                            ce('div', null,
+                                                ce('div', { className: 'activity-text' },
+                                                    a.name ? ce('strong', null, a.name) : null,
+                                                    a.action
+                                                ),
+                                                ce('div', { className: 'activity-time' }, a.time)
+                                            )
+                                        );
+                                    })
+                                )
+                            )
+                        )
+                    )
+                )
+            );
+        }
+
+        // =============================================
+        // APP — uses custom hash routing
+        // =============================================
+        function App() {
+            var hash = useHash();
+            var isAuthenticated = !!localStorage.getItem('hitech_auth');
+
+            if (hash === '#/dashboard' && isAuthenticated) {
+                return ce(Dashboard, null);
+            }
+            return ce(Login, null);
+        }
+
+        // ---- Mount ----
+        var rootEl = document.getElementById('root');
+        var root = ReactDOM.createRoot(rootEl);
+        root.render(ce(App, null));
+    </script>
+</body>
+
+</html>
