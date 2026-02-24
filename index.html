@@ -132,10 +132,91 @@
         }
 
         // =============================================
-        // DASHBOARD COMPONENT
+        // ROUTE CONFIG
         // =============================================
-        function Dashboard() {
+        var ROUTES = [
+            { path: '/dashboard', icon: '\uD83D\uDCCA', label: 'Dashboard', section: 'Main' },
+            { path: '/students', icon: '\uD83D\uDC68\u200D\uD83C\uDF93', label: 'Students', badge: '2.8K', section: 'Main' },
+            { path: '/courses', icon: '\uD83D\uDCDA', label: 'Courses', section: 'Main' },
+            { path: '/exams', icon: '\uD83D\uDCDD', label: 'Exams', section: 'Main' },
+            { path: '/payments', icon: '\uD83D\uDCB3', label: 'Payments', section: 'Management' },
+            { path: '/helpdesk', icon: '\uD83C\uDFA7', label: 'Helpdesk', section: 'Management' },
+            { path: '/settings', icon: '\u2699\uFE0F', label: 'Settings', section: 'Management' }
+        ];
+
+        // =============================================
+        // SIDEBAR COMPONENT (shared)
+        // =============================================
+        function Sidebar(props) {
+            var currentRoute = props.currentRoute;
+            var auth = props.auth;
+
+            function handleLogout() {
+                localStorage.removeItem('hitech_auth');
+                navigateTo('/');
+            }
+
+            var mainItems = ROUTES.filter(function (r) { return r.section === 'Main'; });
+            var mgmtItems = ROUTES.filter(function (r) { return r.section === 'Management'; });
+
+            return ce('aside', { className: 'sidebar' },
+                ce('div', { className: 'sidebar-brand' },
+                    ce('div', { className: 'sidebar-brand-icon' }, '\uD83C\uDF93'),
+                    ce('h2', null, 'HiTech', ce('br', null), ce('span', null, 'Educational Institute'))
+                ),
+                ce('nav', { className: 'sidebar-nav' },
+                    ce('div', { className: 'nav-section-label' }, 'Main'),
+                    mainItems.map(function (item) {
+                        var isActive = currentRoute === item.path;
+                        return ce('a', {
+                            className: 'nav-item' + (isActive ? ' active' : ''),
+                            href: '#' + item.path,
+                            key: item.path,
+                            onClick: function (e) { e.preventDefault(); navigateTo(item.path); }
+                        },
+                            ce('span', { className: 'nav-item-icon' }, item.icon),
+                            ' ' + item.label,
+                            item.badge ? ce('span', { className: 'nav-item-badge' }, item.badge) : null
+                        );
+                    }),
+                    ce('div', { className: 'nav-section-label' }, 'Management'),
+                    mgmtItems.map(function (item) {
+                        var isActive = currentRoute === item.path;
+                        return ce('a', {
+                            className: 'nav-item' + (isActive ? ' active' : ''),
+                            href: '#' + item.path,
+                            key: item.path,
+                            onClick: function (e) { e.preventDefault(); navigateTo(item.path); }
+                        },
+                            ce('span', { className: 'nav-item-icon' }, item.icon),
+                            ' ' + item.label,
+                            item.badge ? ce('span', { className: 'nav-item-badge' }, item.badge) : null
+                        );
+                    })
+                ),
+                ce('div', { className: 'sidebar-footer' },
+                    ce('div', { className: 'sidebar-user' },
+                        ce('div', { className: 'sidebar-avatar' }, auth.user.charAt(0)),
+                        ce('div', { className: 'sidebar-user-info' },
+                            ce('div', { className: 'sidebar-user-name' }, auth.user),
+                            ce('div', { className: 'sidebar-user-role' }, auth.role)
+                        )
+                    ),
+                    ce('button', { id: 'logout-btn', className: 'logout-btn', onClick: handleLogout },
+                        ce('span', null, '\uD83D\uDEAA'), ' Sign Out'
+                    )
+                )
+            );
+        }
+
+        // =============================================
+        // DASHBOARD LAYOUT WRAPPER
+        // =============================================
+        function DashboardLayout(props) {
             var auth = JSON.parse(localStorage.getItem('hitech_auth') || '{}');
+            var currentRoute = props.currentRoute;
+            var pageTitle = props.pageTitle;
+            var pageSubtitle = props.pageSubtitle;
 
             React.useEffect(function () {
                 if (!auth.user) navigateTo('/');
@@ -143,10 +224,31 @@
 
             if (!auth.user) return null;
 
-            function handleLogout() {
-                localStorage.removeItem('hitech_auth');
-                navigateTo('/');
-            }
+            return ce('div', { className: 'dashboard-layout' },
+                ce(Sidebar, { currentRoute: currentRoute, auth: auth }),
+                ce('main', { className: 'main-content' },
+                    ce('header', { className: 'dashboard-header' },
+                        ce('div', { className: 'header-left' },
+                            ce('h1', null, pageTitle),
+                            ce('p', null, pageSubtitle)
+                        ),
+                        ce('div', { className: 'header-right' },
+                            ce('button', { className: 'header-icon-btn', title: 'Notifications' },
+                                '\uD83D\uDD14', ce('span', { className: 'badge' })
+                            ),
+                            ce('button', { className: 'header-icon-btn', title: 'Messages' }, '\u2709\uFE0F')
+                        )
+                    ),
+                    ce('div', { className: 'dashboard-content' }, props.children)
+                )
+            );
+        }
+
+        // =============================================
+        // DASHBOARD PAGE (original content)
+        // =============================================
+        function DashboardPage() {
+            var auth = JSON.parse(localStorage.getItem('hitech_auth') || '{}');
 
             var stats = [
                 { icon: '\uD83D\uDC68\u200D\uD83C\uDF93', value: '2,847', label: 'Total Students', trend: '+12.5%', up: true },
@@ -167,131 +269,416 @@
             var chartHeights = [35, 55, 45, 70, 60, 85, 50, 75, 90, 65, 80, 70];
             var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-            var mainNav = [
-                { icon: '\uD83D\uDCCA', label: 'Dashboard', active: true },
-                { icon: '\uD83D\uDC68\u200D\uD83C\uDF93', label: 'Students', badge: '2.8K' },
-                { icon: '\uD83D\uDCDA', label: 'Courses' },
-                { icon: '\uD83D\uDCC5', label: 'Schedule' }
-            ];
-
-            var mgmtNav = [
-                { icon: '\uD83D\uDCB3', label: 'Payments' },
-                { icon: '\uD83D\uDCDD', label: 'Reports' },
-                { icon: '\u2699\uFE0F', label: 'Settings' }
-            ];
-
-            return ce('div', { className: 'dashboard-layout' },
-                // Sidebar
-                ce('aside', { className: 'sidebar' },
-                    ce('div', { className: 'sidebar-brand' },
-                        ce('div', { className: 'sidebar-brand-icon' }, '\uD83C\uDF93'),
-                        ce('h2', null, 'HiTech', ce('br', null), ce('span', null, 'Educational Institute'))
-                    ),
-                    ce('nav', { className: 'sidebar-nav' },
-                        ce('div', { className: 'nav-section-label' }, 'Main'),
-                        mainNav.map(function (item, i) {
-                            return ce('a', {
-                                className: 'nav-item' + (item.active ? ' active' : ''),
-                                href: '#', key: 'n' + i
-                            },
-                                ce('span', { className: 'nav-item-icon' }, item.icon),
-                                ' ' + item.label,
-                                item.badge ? ce('span', { className: 'nav-item-badge' }, item.badge) : null
-                            );
-                        }),
-                        ce('div', { className: 'nav-section-label' }, 'Management'),
-                        mgmtNav.map(function (item, i) {
-                            return ce('a', { className: 'nav-item', href: '#', key: 'm' + i },
-                                ce('span', { className: 'nav-item-icon' }, item.icon),
-                                ' ' + item.label
-                            );
-                        })
-                    ),
-                    ce('div', { className: 'sidebar-footer' },
-                        ce('div', { className: 'sidebar-user' },
-                            ce('div', { className: 'sidebar-avatar' }, auth.user.charAt(0)),
-                            ce('div', { className: 'sidebar-user-info' },
-                                ce('div', { className: 'sidebar-user-name' }, auth.user),
-                                ce('div', { className: 'sidebar-user-role' }, auth.role)
-                            )
+            return ce(DashboardLayout, {
+                currentRoute: '/dashboard',
+                pageTitle: 'Dashboard',
+                pageSubtitle: 'Welcome back, ' + auth.user + "! Here's what's happening today."
+            },
+                // Stats
+                ce('div', { className: 'stats-grid' },
+                    stats.map(function (s, i) {
+                        return ce('div', { className: 'stat-card', key: 's' + i },
+                            ce('div', { className: 'stat-header' },
+                                ce('div', { className: 'stat-icon' }, s.icon),
+                                ce('span', { className: 'stat-trend ' + (s.up ? 'up' : 'down') },
+                                    (s.up ? '\u2191 ' : '\u2193 ') + s.trend
+                                )
+                            ),
+                            ce('div', { className: 'stat-value' }, s.value),
+                            ce('div', { className: 'stat-label' }, s.label)
+                        );
+                    })
+                ),
+                // Content Grid
+                ce('div', { className: 'content-grid' },
+                    // Chart
+                    ce('div', { className: 'content-card' },
+                        ce('div', { className: 'content-card-header' },
+                            ce('span', { className: 'content-card-title' }, 'Enrollment Overview'),
+                            ce('span', { className: 'content-card-action' }, 'View Report \u2192')
                         ),
-                        ce('button', { id: 'logout-btn', className: 'logout-btn', onClick: handleLogout },
-                            ce('span', null, '\uD83D\uDEAA'), ' Sign Out'
+                        ce('div', { className: 'chart-area' },
+                            chartHeights.map(function (h, i) {
+                                return ce('div', { className: 'chart-bar', key: 'c' + i, style: { height: h + '%' } });
+                            })
+                        ),
+                        ce('div', { className: 'chart-labels' },
+                            months.map(function (m, i) {
+                                return ce('span', { key: 'l' + i }, m);
+                            })
+                        )
+                    ),
+                    // Activity
+                    ce('div', { className: 'content-card' },
+                        ce('div', { className: 'content-card-header' },
+                            ce('span', { className: 'content-card-title' }, 'Recent Activity'),
+                            ce('span', { className: 'content-card-action' }, 'See All \u2192')
+                        ),
+                        ce('div', { className: 'activity-list' },
+                            activities.map(function (a, i) {
+                                return ce('div', { className: 'activity-item', key: 'a' + i },
+                                    ce('div', { className: 'activity-dot ' + a.color }),
+                                    ce('div', null,
+                                        ce('div', { className: 'activity-text' },
+                                            a.name ? ce('strong', null, a.name) : null,
+                                            a.action
+                                        ),
+                                        ce('div', { className: 'activity-time' }, a.time)
+                                    )
+                                );
+                            })
+                        )
+                    )
+                )
+            );
+        }
+
+        // =============================================
+        // STUDENTS PAGE
+        // =============================================
+        function StudentsPage() {
+            var students = [
+                { id: 'STU-001', name: 'Sarah Chen', email: 'sarah.chen@mail.com', course: 'Advanced React', status: 'Active', gpa: '3.8' },
+                { id: 'STU-002', name: 'James Wilson', email: 'j.wilson@mail.com', course: 'Python Fundamentals', status: 'Active', gpa: '3.5' },
+                { id: 'STU-003', name: 'Emily Davis', email: 'emily.d@mail.com', course: 'Data Science', status: 'Active', gpa: '3.9' },
+                { id: 'STU-004', name: 'Michael Brown', email: 'm.brown@mail.com', course: 'Web Design', status: 'On Leave', gpa: '3.2' },
+                { id: 'STU-005', name: 'Aisha Patel', email: 'aisha.p@mail.com', course: 'Machine Learning', status: 'Active', gpa: '3.7' },
+                { id: 'STU-006', name: 'Carlos Rodriguez', email: 'carlos.r@mail.com', course: 'Cybersecurity', status: 'Active', gpa: '3.4' },
+                { id: 'STU-007', name: 'Yuki Tanaka', email: 'yuki.t@mail.com', course: 'Cloud Computing', status: 'Graduated', gpa: '3.6' },
+                { id: 'STU-008', name: 'Olivia Johnson', email: 'o.johnson@mail.com', course: 'AI for Beginners', status: 'Active', gpa: '3.1' }
+            ];
+
+            var statusColors = { 'Active': 'active', 'On Leave': 'warning', 'Graduated': 'info' };
+
+            return ce(DashboardLayout, {
+                currentRoute: '/students',
+                pageTitle: 'Students',
+                pageSubtitle: 'Manage and track all enrolled students.'
+            },
+                ce('div', { className: 'page-header-bar' },
+                    ce('div', { className: 'page-stats-row' },
+                        ce('span', { className: 'page-stat' }, ce('strong', null, '2,847'), ' Total'),
+                        ce('span', { className: 'page-stat' }, ce('strong', null, '2,614'), ' Active'),
+                        ce('span', { className: 'page-stat' }, ce('strong', null, '89'), ' On Leave'),
+                        ce('span', { className: 'page-stat' }, ce('strong', null, '144'), ' Graduated')
+                    ),
+                    ce('button', { className: 'page-action-btn' }, '+ Add Student')
+                ),
+                ce('div', { className: 'content-card' },
+                    ce('div', { className: 'table-wrapper' },
+                        ce('table', { className: 'page-table' },
+                            ce('thead', null,
+                                ce('tr', null,
+                                    ce('th', null, 'ID'),
+                                    ce('th', null, 'Name'),
+                                    ce('th', null, 'Email'),
+                                    ce('th', null, 'Course'),
+                                    ce('th', null, 'GPA'),
+                                    ce('th', null, 'Status')
+                                )
+                            ),
+                            ce('tbody', null,
+                                students.map(function (s) {
+                                    return ce('tr', { key: s.id },
+                                        ce('td', { className: 'td-id' }, s.id),
+                                        ce('td', { className: 'td-name' }, s.name),
+                                        ce('td', { className: 'td-email' }, s.email),
+                                        ce('td', null, s.course),
+                                        ce('td', null, s.gpa),
+                                        ce('td', null, ce('span', { className: 'status-badge ' + statusColors[s.status] }, s.status))
+                                    );
+                                })
+                            )
+                        )
+                    )
+                )
+            );
+        }
+
+        // =============================================
+        // COURSES PAGE
+        // =============================================
+        function CoursesPage() {
+            var courses = [
+                { title: 'Advanced React', instructor: 'Dr. Sarah Miller', enrolled: 324, capacity: 400, progress: 72, color: 'purple' },
+                { title: 'Python Fundamentals', instructor: 'Prof. John Smith', enrolled: 512, capacity: 600, progress: 85, color: 'green' },
+                { title: 'Data Science', instructor: 'Dr. Emily Zhang', enrolled: 289, capacity: 350, progress: 63, color: 'blue' },
+                { title: 'Machine Learning', instructor: 'Prof. Alex Kumar', enrolled: 198, capacity: 250, progress: 45, color: 'orange' },
+                { title: 'Web Design', instructor: 'Ms. Lisa Park', enrolled: 445, capacity: 500, progress: 91, color: 'purple' },
+                { title: 'Cybersecurity', instructor: 'Dr. Mike Chen', enrolled: 167, capacity: 200, progress: 58, color: 'green' },
+                { title: 'Cloud Computing', instructor: 'Prof. Nina Roy', enrolled: 234, capacity: 300, progress: 77, color: 'blue' },
+                { title: 'AI for Beginners', instructor: 'Dr. Tom Harris', enrolled: 378, capacity: 450, progress: 34, color: 'orange' }
+            ];
+
+            return ce(DashboardLayout, {
+                currentRoute: '/courses',
+                pageTitle: 'Courses',
+                pageSubtitle: 'Browse and manage all available courses.'
+            },
+                ce('div', { className: 'page-header-bar' },
+                    ce('div', { className: 'page-stats-row' },
+                        ce('span', { className: 'page-stat' }, ce('strong', null, '186'), ' Total Courses'),
+                        ce('span', { className: 'page-stat' }, ce('strong', null, '24'), ' New This Month')
+                    ),
+                    ce('button', { className: 'page-action-btn' }, '+ New Course')
+                ),
+                ce('div', { className: 'course-grid' },
+                    courses.map(function (c, i) {
+                        var pct = Math.round((c.enrolled / c.capacity) * 100);
+                        return ce('div', { className: 'course-card', key: 'course' + i },
+                            ce('div', { className: 'course-color-bar ' + c.color }),
+                            ce('div', { className: 'course-card-body' },
+                                ce('h3', { className: 'course-title' }, c.title),
+                                ce('p', { className: 'course-instructor' }, c.instructor),
+                                ce('div', { className: 'course-meta' },
+                                    ce('span', null, '\uD83D\uDC65 ' + c.enrolled + '/' + c.capacity),
+                                    ce('span', null, c.progress + '% complete')
+                                ),
+                                ce('div', { className: 'progress-bar-track' },
+                                    ce('div', { className: 'progress-bar-fill ' + c.color, style: { width: c.progress + '%' } })
+                                )
+                            )
+                        );
+                    })
+                )
+            );
+        }
+
+        // =============================================
+        // EXAMS PAGE
+        // =============================================
+        function ExamsPage() {
+            var exams = [
+                { id: 'EXM-101', subject: 'Advanced React', date: '2026-03-15', time: '09:00 AM', duration: '2h', students: 324, status: 'Upcoming' },
+                { id: 'EXM-102', subject: 'Python Fundamentals', date: '2026-03-12', time: '10:30 AM', duration: '1.5h', students: 512, status: 'Upcoming' },
+                { id: 'EXM-103', subject: 'Data Science', date: '2026-03-10', time: '02:00 PM', duration: '2h', students: 289, status: 'Upcoming' },
+                { id: 'EXM-104', subject: 'Web Design', date: '2026-02-28', time: '09:00 AM', duration: '1.5h', students: 445, status: 'Scheduled' },
+                { id: 'EXM-105', subject: 'Machine Learning', date: '2026-02-20', time: '11:00 AM', duration: '3h', students: 198, status: 'Completed' },
+                { id: 'EXM-106', subject: 'Cybersecurity', date: '2026-02-18', time: '01:00 PM', duration: '2h', students: 167, status: 'Completed' },
+                { id: 'EXM-107', subject: 'Cloud Computing', date: '2026-02-15', time: '10:00 AM', duration: '2h', students: 234, status: 'Graded' },
+                { id: 'EXM-108', subject: 'AI for Beginners', date: '2026-02-10', time: '09:30 AM', duration: '1.5h', students: 378, status: 'Graded' }
+            ];
+
+            var statusColors = { 'Upcoming': 'warning', 'Scheduled': 'info', 'Completed': 'active', 'Graded': 'purple' };
+
+            return ce(DashboardLayout, {
+                currentRoute: '/exams',
+                pageTitle: 'Exams',
+                pageSubtitle: 'Schedule and manage examinations.'
+            },
+                ce('div', { className: 'page-header-bar' },
+                    ce('div', { className: 'page-stats-row' },
+                        ce('span', { className: 'page-stat' }, ce('strong', null, '3'), ' Upcoming'),
+                        ce('span', { className: 'page-stat' }, ce('strong', null, '1'), ' Scheduled'),
+                        ce('span', { className: 'page-stat' }, ce('strong', null, '4'), ' Completed')
+                    ),
+                    ce('button', { className: 'page-action-btn' }, '+ Schedule Exam')
+                ),
+                ce('div', { className: 'content-card' },
+                    ce('div', { className: 'table-wrapper' },
+                        ce('table', { className: 'page-table' },
+                            ce('thead', null,
+                                ce('tr', null,
+                                    ce('th', null, 'ID'),
+                                    ce('th', null, 'Subject'),
+                                    ce('th', null, 'Date'),
+                                    ce('th', null, 'Time'),
+                                    ce('th', null, 'Duration'),
+                                    ce('th', null, 'Students'),
+                                    ce('th', null, 'Status')
+                                )
+                            ),
+                            ce('tbody', null,
+                                exams.map(function (e) {
+                                    return ce('tr', { key: e.id },
+                                        ce('td', { className: 'td-id' }, e.id),
+                                        ce('td', { className: 'td-name' }, e.subject),
+                                        ce('td', null, e.date),
+                                        ce('td', null, e.time),
+                                        ce('td', null, e.duration),
+                                        ce('td', null, e.students),
+                                        ce('td', null, ce('span', { className: 'status-badge ' + statusColors[e.status] }, e.status))
+                                    );
+                                })
+                            )
+                        )
+                    )
+                )
+            );
+        }
+
+        // =============================================
+        // PAYMENTS PAGE
+        // =============================================
+        function PaymentsPage() {
+            var payments = [
+                { id: 'PAY-3021', student: 'Sarah Chen', amount: '$2,450.00', date: '2026-02-24', method: 'Credit Card', status: 'Completed' },
+                { id: 'PAY-3020', student: 'James Wilson', amount: '$1,800.00', date: '2026-02-23', method: 'Bank Transfer', status: 'Completed' },
+                { id: 'PAY-3019', student: 'Emily Davis', amount: '$3,200.00', date: '2026-02-22', method: 'Credit Card', status: 'Completed' },
+                { id: 'PAY-3018', student: 'Michael Brown', amount: '$2,450.00', date: '2026-02-21', method: 'PayPal', status: 'Pending' },
+                { id: 'PAY-3017', student: 'Aisha Patel', amount: '$2,800.00', date: '2026-02-20', method: 'Credit Card', status: 'Completed' },
+                { id: 'PAY-3016', student: 'Carlos Rodriguez', amount: '$1,600.00', date: '2026-02-19', method: 'Bank Transfer', status: 'Failed' },
+                { id: 'PAY-3015', student: 'Yuki Tanaka', amount: '$2,200.00', date: '2026-02-18', method: 'Credit Card', status: 'Refunded' },
+                { id: 'PAY-3014', student: 'Olivia Johnson', amount: '$1,950.00', date: '2026-02-17', method: 'PayPal', status: 'Completed' }
+            ];
+
+            var statusColors = { 'Completed': 'active', 'Pending': 'warning', 'Failed': 'danger', 'Refunded': 'info' };
+
+            return ce(DashboardLayout, {
+                currentRoute: '/payments',
+                pageTitle: 'Payments',
+                pageSubtitle: 'Track and manage all payment transactions.'
+            },
+                ce('div', { className: 'page-header-bar' },
+                    ce('div', { className: 'page-stats-row' },
+                        ce('span', { className: 'page-stat' }, ce('strong', null, '$94.2K'), ' This Month'),
+                        ce('span', { className: 'page-stat' }, ce('strong', null, '847'), ' Transactions'),
+                        ce('span', { className: 'page-stat' }, ce('strong', null, '3'), ' Pending')
+                    ),
+                    ce('button', { className: 'page-action-btn' }, '+ Record Payment')
+                ),
+                ce('div', { className: 'content-card' },
+                    ce('div', { className: 'table-wrapper' },
+                        ce('table', { className: 'page-table' },
+                            ce('thead', null,
+                                ce('tr', null,
+                                    ce('th', null, 'ID'),
+                                    ce('th', null, 'Student'),
+                                    ce('th', null, 'Amount'),
+                                    ce('th', null, 'Date'),
+                                    ce('th', null, 'Method'),
+                                    ce('th', null, 'Status')
+                                )
+                            ),
+                            ce('tbody', null,
+                                payments.map(function (p) {
+                                    return ce('tr', { key: p.id },
+                                        ce('td', { className: 'td-id' }, p.id),
+                                        ce('td', { className: 'td-name' }, p.student),
+                                        ce('td', { className: 'td-amount' }, p.amount),
+                                        ce('td', null, p.date),
+                                        ce('td', null, p.method),
+                                        ce('td', null, ce('span', { className: 'status-badge ' + statusColors[p.status] }, p.status))
+                                    );
+                                })
+                            )
+                        )
+                    )
+                )
+            );
+        }
+
+        // =============================================
+        // HELPDESK PAGE
+        // =============================================
+        function HelpdeskPage() {
+            var tickets = [
+                { id: 'TKT-401', subject: 'Cannot access course materials', requester: 'Sarah Chen', priority: 'High', status: 'Open', created: '2 hours ago' },
+                { id: 'TKT-400', subject: 'Payment failed but amount deducted', requester: 'Carlos Rodriguez', priority: 'Urgent', status: 'In Progress', created: '3 hours ago' },
+                { id: 'TKT-399', subject: 'Certificate not generated', requester: 'Yuki Tanaka', priority: 'Medium', status: 'Open', created: '5 hours ago' },
+                { id: 'TKT-398', subject: 'Video playback issues', requester: 'Emily Davis', priority: 'Low', status: 'Open', created: '1 day ago' },
+                { id: 'TKT-397', subject: 'Need to change enrolled course', requester: 'Michael Brown', priority: 'Medium', status: 'In Progress', created: '1 day ago' },
+                { id: 'TKT-396', subject: 'Login issues with new device', requester: 'Aisha Patel', priority: 'High', status: 'Resolved', created: '2 days ago' },
+                { id: 'TKT-395', subject: 'Request for transcript', requester: 'James Wilson', priority: 'Low', status: 'Resolved', created: '2 days ago' },
+                { id: 'TKT-394', subject: 'Exam date conflict', requester: 'Olivia Johnson', priority: 'High', status: 'Closed', created: '3 days ago' }
+            ];
+
+            var priorityColors = { 'Urgent': 'danger', 'High': 'warning', 'Medium': 'info', 'Low': 'active' };
+            var statusColors = { 'Open': 'warning', 'In Progress': 'info', 'Resolved': 'active', 'Closed': 'purple' };
+
+            return ce(DashboardLayout, {
+                currentRoute: '/helpdesk',
+                pageTitle: 'Helpdesk',
+                pageSubtitle: 'Manage support tickets and student requests.'
+            },
+                ce('div', { className: 'page-header-bar' },
+                    ce('div', { className: 'page-stats-row' },
+                        ce('span', { className: 'page-stat' }, ce('strong', null, '12'), ' Open'),
+                        ce('span', { className: 'page-stat' }, ce('strong', null, '5'), ' In Progress'),
+                        ce('span', { className: 'page-stat' }, ce('strong', null, '234'), ' Resolved')
+                    ),
+                    ce('button', { className: 'page-action-btn' }, '+ New Ticket')
+                ),
+                ce('div', { className: 'ticket-grid' },
+                    tickets.map(function (t) {
+                        return ce('div', { className: 'ticket-card', key: t.id },
+                            ce('div', { className: 'ticket-card-header' },
+                                ce('span', { className: 'td-id' }, t.id),
+                                ce('span', { className: 'status-badge ' + statusColors[t.status] }, t.status)
+                            ),
+                            ce('h3', { className: 'ticket-subject' }, t.subject),
+                            ce('div', { className: 'ticket-meta' },
+                                ce('span', null, '\uD83D\uDC64 ' + t.requester),
+                                ce('span', { className: 'status-badge ' + priorityColors[t.priority] }, t.priority)
+                            ),
+                            ce('div', { className: 'ticket-time' }, '\uD83D\uDD52 ' + t.created)
+                        );
+                    })
+                )
+            );
+        }
+
+        // =============================================
+        // SETTINGS PAGE
+        // =============================================
+        function SettingsPage() {
+            var auth = JSON.parse(localStorage.getItem('hitech_auth') || '{}');
+
+            return ce(DashboardLayout, {
+                currentRoute: '/settings',
+                pageTitle: 'Settings',
+                pageSubtitle: 'Manage your account and preferences.'
+            },
+                // Profile Section
+                ce('div', { className: 'content-card settings-section' },
+                    ce('h3', { className: 'settings-section-title' }, '\uD83D\uDC64 Profile Information'),
+                    ce('div', { className: 'settings-grid' },
+                        ce('div', { className: 'settings-field' },
+                            ce('label', { className: 'form-label' }, 'Full Name'),
+                            ce('input', { className: 'form-input', type: 'text', defaultValue: auth.user || 'Admin', readOnly: true })
+                        ),
+                        ce('div', { className: 'settings-field' },
+                            ce('label', { className: 'form-label' }, 'Email Address'),
+                            ce('input', { className: 'form-input', type: 'email', defaultValue: auth.email || 'admin@hitech.edu', readOnly: true })
+                        ),
+                        ce('div', { className: 'settings-field' },
+                            ce('label', { className: 'form-label' }, 'Role'),
+                            ce('input', { className: 'form-input', type: 'text', defaultValue: auth.role || 'Administrator', readOnly: true })
+                        ),
+                        ce('div', { className: 'settings-field' },
+                            ce('label', { className: 'form-label' }, 'Phone'),
+                            ce('input', { className: 'form-input', type: 'tel', defaultValue: '+1 (555) 123-4567', readOnly: true })
                         )
                     )
                 ),
 
-                // Main Content
-                ce('main', { className: 'main-content' },
-                    ce('header', { className: 'dashboard-header' },
-                        ce('div', { className: 'header-left' },
-                            ce('h1', null, 'Dashboard'),
-                            ce('p', null, 'Welcome back, ' + auth.user + "! Here's what's happening today.")
-                        ),
-                        ce('div', { className: 'header-right' },
-                            ce('button', { className: 'header-icon-btn', title: 'Notifications' },
-                                '\uD83D\uDD14', ce('span', { className: 'badge' })
-                            ),
-                            ce('button', { className: 'header-icon-btn', title: 'Messages' }, '\u2709\uFE0F')
-                        )
-                    ),
-                    ce('div', { className: 'dashboard-content' },
-                        // Stats
-                        ce('div', { className: 'stats-grid' },
-                            stats.map(function (s, i) {
-                                return ce('div', { className: 'stat-card', key: 's' + i },
-                                    ce('div', { className: 'stat-header' },
-                                        ce('div', { className: 'stat-icon' }, s.icon),
-                                        ce('span', { className: 'stat-trend ' + (s.up ? 'up' : 'down') },
-                                            (s.up ? '\u2191 ' : '\u2193 ') + s.trend
-                                        )
-                                    ),
-                                    ce('div', { className: 'stat-value' }, s.value),
-                                    ce('div', { className: 'stat-label' }, s.label)
-                                );
-                            })
-                        ),
-                        // Content Grid
-                        ce('div', { className: 'content-grid' },
-                            // Chart
-                            ce('div', { className: 'content-card' },
-                                ce('div', { className: 'content-card-header' },
-                                    ce('span', { className: 'content-card-title' }, 'Enrollment Overview'),
-                                    ce('span', { className: 'content-card-action' }, 'View Report \u2192')
-                                ),
-                                ce('div', { className: 'chart-area' },
-                                    chartHeights.map(function (h, i) {
-                                        return ce('div', { className: 'chart-bar', key: 'c' + i, style: { height: h + '%' } });
-                                    })
-                                ),
-                                ce('div', { className: 'chart-labels' },
-                                    months.map(function (m, i) {
-                                        return ce('span', { key: 'l' + i }, m);
-                                    })
+                // Notifications Section
+                ce('div', { className: 'content-card settings-section' },
+                    ce('h3', { className: 'settings-section-title' }, '\uD83D\uDD14 Notification Preferences'),
+                    ce('div', { className: 'settings-toggle-list' },
+                        ['Email Notifications', 'Push Notifications', 'SMS Alerts', 'Weekly Digest'].map(function (label, i) {
+                            return ce('div', { className: 'settings-toggle-row', key: 'n' + i },
+                                ce('span', null, label),
+                                ce('div', { className: 'toggle-switch' + (i < 2 ? ' on' : '') },
+                                    ce('div', { className: 'toggle-knob' })
                                 )
-                            ),
-                            // Activity
-                            ce('div', { className: 'content-card' },
-                                ce('div', { className: 'content-card-header' },
-                                    ce('span', { className: 'content-card-title' }, 'Recent Activity'),
-                                    ce('span', { className: 'content-card-action' }, 'See All \u2192')
-                                ),
-                                ce('div', { className: 'activity-list' },
-                                    activities.map(function (a, i) {
-                                        return ce('div', { className: 'activity-item', key: 'a' + i },
-                                            ce('div', { className: 'activity-dot ' + a.color }),
-                                            ce('div', null,
-                                                ce('div', { className: 'activity-text' },
-                                                    a.name ? ce('strong', null, a.name) : null,
-                                                    a.action
-                                                ),
-                                                ce('div', { className: 'activity-time' }, a.time)
-                                            )
-                                        );
-                                    })
+                            );
+                        })
+                    )
+                ),
+
+                // Appearance Section
+                ce('div', { className: 'content-card settings-section' },
+                    ce('h3', { className: 'settings-section-title' }, '\uD83C\uDFA8 Appearance'),
+                    ce('div', { className: 'settings-toggle-list' },
+                        ['Dark Mode', 'Compact Sidebar', 'Animations'].map(function (label, i) {
+                            return ce('div', { className: 'settings-toggle-row', key: 'a' + i },
+                                ce('span', null, label),
+                                ce('div', { className: 'toggle-switch' + (i === 0 || i === 2 ? ' on' : '') },
+                                    ce('div', { className: 'toggle-knob' })
                                 )
-                            )
-                        )
+                            );
+                        })
                     )
                 )
             );
@@ -303,11 +690,22 @@
         function App() {
             var hash = useHash();
             var isAuthenticated = !!localStorage.getItem('hitech_auth');
+            var route = hash.replace('#', '') || '/';
 
-            if (hash === '#/dashboard' && isAuthenticated) {
-                return ce(Dashboard, null);
+            if (!isAuthenticated) {
+                return ce(Login, null);
             }
-            return ce(Login, null);
+
+            switch (route) {
+                case '/dashboard': return ce(DashboardPage, null);
+                case '/students': return ce(StudentsPage, null);
+                case '/courses': return ce(CoursesPage, null);
+                case '/exams': return ce(ExamsPage, null);
+                case '/payments': return ce(PaymentsPage, null);
+                case '/helpdesk': return ce(HelpdeskPage, null);
+                case '/settings': return ce(SettingsPage, null);
+                default: return ce(DashboardPage, null);
+            }
         }
 
         // ---- Mount ----
