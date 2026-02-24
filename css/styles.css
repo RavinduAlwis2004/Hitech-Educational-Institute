@@ -1469,3 +1469,435 @@ ul {
     align-items: flex-start;
   }
 }
+
+/* ==========================================
+   FINANCE MODULE
+   ========================================== */
+
+/* ---------- Finance Tabs ---------- */
+.finance-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 24px;
+  background: var(--surface-800);
+  border-radius: var(--radius-md);
+  padding: 4px;
+  border: 1px solid var(--glass-border);
+}
+
+.finance-tab {
+  flex: 1;
+  padding: 12px 20px;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: var(--transition);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.finance-tab:hover {
+  color: var(--text-primary);
+  background: rgba(99, 102, 241, 0.06);
+}
+
+.finance-tab.active {
+  background: rgba(99, 102, 241, 0.15);
+  color: var(--primary-400);
+  box-shadow: var(--shadow-sm);
+}
+
+.tab-icon {
+  font-size: 1.05rem;
+}
+
+/* ---------- Modal ---------- */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+  animation: fadeIn 0.2s ease;
+}
+
+.modal-card {
+  background: var(--surface-800);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xl);
+  width: 100%;
+  max-width: 580px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: var(--shadow-lg), var(--shadow-glow);
+  animation: slideUp 0.3s ease;
+}
+
+.modal-card.modal-receipt {
+  max-width: 480px;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24px 28px 16px;
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.modal-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.modal-close-btn {
+  width: 32px;
+  height: 32px;
+  background: var(--surface-700);
+  border: 1px solid var(--glass-border);
+  border-radius: 50%;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition);
+}
+
+.modal-close-btn:hover {
+  background: rgba(239, 68, 68, 0.15);
+  color: #fca5a5;
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.modal-body {
+  padding: 24px 28px 28px;
+}
+
+/* ---------- Form Layout ---------- */
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--glass-border);
+}
+
+/* ---------- Buttons ---------- */
+.btn-primary {
+  padding: 10px 24px;
+  background: var(--gradient-primary);
+  background-size: 200% 200%;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: white;
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: var(--transition);
+}
+
+.btn-primary:hover {
+  background-position: right center;
+  box-shadow: 0 4px 20px rgba(99, 102, 241, 0.4);
+  transform: translateY(-1px);
+}
+
+.btn-secondary {
+  padding: 10px 24px;
+  background: var(--surface-700);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: var(--transition);
+}
+
+.btn-secondary:hover {
+  background: var(--surface-600);
+  color: var(--text-primary);
+}
+
+.btn-danger {
+  padding: 10px 24px;
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: var(--radius-sm);
+  color: #fca5a5;
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: var(--transition);
+}
+
+.btn-danger:hover {
+  background: rgba(239, 68, 68, 0.25);
+}
+
+/* ---------- Action Buttons (table) ---------- */
+.action-btns {
+  display: flex;
+  gap: 4px;
+}
+
+.action-btn {
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition);
+  cursor: pointer;
+}
+
+.action-btn.view:hover {
+  background: rgba(99, 102, 241, 0.15);
+}
+
+.action-btn.edit:hover {
+  background: rgba(59, 130, 246, 0.15);
+}
+
+.action-btn.void:hover {
+  background: rgba(245, 158, 11, 0.15);
+}
+
+.action-btn.delete:hover {
+  background: rgba(239, 68, 68, 0.15);
+}
+
+/* ---------- Void Styling ---------- */
+.voided-row {
+  opacity: 0.45;
+}
+
+.voided-row td {
+  text-decoration: line-through;
+  text-decoration-color: rgba(239, 68, 68, 0.5);
+}
+
+.voided-row .td-id,
+.voided-row .action-btns {
+  text-decoration: none;
+}
+
+.void-badge {
+  display: inline-block;
+  font-size: 0.55rem;
+  font-weight: 800;
+  color: var(--danger);
+  background: rgba(239, 68, 68, 0.12);
+  padding: 1px 5px;
+  border-radius: 4px;
+  margin-left: 6px;
+  vertical-align: middle;
+  letter-spacing: 0.5px;
+}
+
+.void-confirm {
+  text-align: center;
+  padding: 16px 0;
+}
+
+.void-icon {
+  font-size: 3rem;
+  margin-bottom: 16px;
+}
+
+.void-warning {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin-top: 8px;
+  margin-bottom: 8px;
+}
+
+/* ---------- Plan Badge ---------- */
+.plan-badge {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--primary-400);
+  background: rgba(99, 102, 241, 0.1);
+  padding: 3px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+/* ---------- Slip Indicator ---------- */
+.slip-indicator {
+  color: var(--accent-400);
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.no-slip {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+/* ---------- File Upload ---------- */
+.file-upload-area {
+  position: relative;
+}
+
+.file-input {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  overflow: hidden;
+}
+
+.file-upload-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 24px;
+  border: 2px dashed var(--surface-500);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: var(--transition);
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.file-upload-label:hover {
+  border-color: var(--primary-500);
+  background: rgba(99, 102, 241, 0.04);
+}
+
+.file-upload-icon {
+  font-size: 1.8rem;
+}
+
+.file-upload-hint {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+/* ---------- Receipt View ---------- */
+.receipt-view {
+  padding: 8px 0;
+}
+
+.receipt-header {
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.receipt-logo {
+  font-size: 2.5rem;
+  margin-bottom: 8px;
+}
+
+.receipt-header h2 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+}
+
+.receipt-header p {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.receipt-divider {
+  height: 1px;
+  background: var(--glass-border);
+  margin: 16px 0;
+}
+
+.receipt-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+}
+
+.receipt-row strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.receipt-total {
+  font-size: 1.1rem;
+}
+
+.receipt-total strong {
+  color: var(--accent-400);
+  font-size: 1.25rem;
+  font-weight: 800;
+}
+
+.receipt-footer {
+  text-align: center;
+  margin-top: 8px;
+}
+
+.receipt-footer p {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.receipt-small {
+  font-size: 0.7rem !important;
+  color: var(--text-muted) !important;
+  margin-top: 4px;
+}
+
+/* ---------- Select styling ---------- */
+select.form-input {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2394a3b8' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 36px;
+}
+
+select.form-input option {
+  background: var(--surface-800);
+  color: var(--text-primary);
+}
+
+/* ---------- Responsive Finance ---------- */
+@media (max-width: 768px) {
+  .finance-tabs {
+    flex-direction: column;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .modal-card {
+    max-width: 100%;
+  }
+}

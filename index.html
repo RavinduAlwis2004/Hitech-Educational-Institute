@@ -139,7 +139,7 @@
             { path: '/students', icon: '\uD83D\uDC68\u200D\uD83C\uDF93', label: 'Students', badge: '2.8K', section: 'Main' },
             { path: '/courses', icon: '\uD83D\uDCDA', label: 'Courses', section: 'Main' },
             { path: '/exams', icon: '\uD83D\uDCDD', label: 'Exams', section: 'Main' },
-            { path: '/payments', icon: '\uD83D\uDCB3', label: 'Payments', section: 'Management' },
+            { path: '/finance', icon: '\uD83D\uDCB3', label: 'Finance', section: 'Management' },
             { path: '/helpdesk', icon: '\uD83C\uDFA7', label: 'Helpdesk', section: 'Management' },
             { path: '/settings', icon: '\u2699\uFE0F', label: 'Settings', section: 'Management' }
         ];
@@ -508,63 +508,585 @@
         }
 
         // =============================================
-        // PAYMENTS PAGE
+        // MODAL COMPONENT (shared)
         // =============================================
-        function PaymentsPage() {
-            var payments = [
-                { id: 'PAY-3021', student: 'Sarah Chen', amount: '$2,450.00', date: '2026-02-24', method: 'Credit Card', status: 'Completed' },
-                { id: 'PAY-3020', student: 'James Wilson', amount: '$1,800.00', date: '2026-02-23', method: 'Bank Transfer', status: 'Completed' },
-                { id: 'PAY-3019', student: 'Emily Davis', amount: '$3,200.00', date: '2026-02-22', method: 'Credit Card', status: 'Completed' },
-                { id: 'PAY-3018', student: 'Michael Brown', amount: '$2,450.00', date: '2026-02-21', method: 'PayPal', status: 'Pending' },
-                { id: 'PAY-3017', student: 'Aisha Patel', amount: '$2,800.00', date: '2026-02-20', method: 'Credit Card', status: 'Completed' },
-                { id: 'PAY-3016', student: 'Carlos Rodriguez', amount: '$1,600.00', date: '2026-02-19', method: 'Bank Transfer', status: 'Failed' },
-                { id: 'PAY-3015', student: 'Yuki Tanaka', amount: '$2,200.00', date: '2026-02-18', method: 'Credit Card', status: 'Refunded' },
-                { id: 'PAY-3014', student: 'Olivia Johnson', amount: '$1,950.00', date: '2026-02-17', method: 'PayPal', status: 'Completed' }
-            ];
-
-            var statusColors = { 'Completed': 'active', 'Pending': 'warning', 'Failed': 'danger', 'Refunded': 'info' };
-
-            return ce(DashboardLayout, {
-                currentRoute: '/payments',
-                pageTitle: 'Payments',
-                pageSubtitle: 'Track and manage all payment transactions.'
-            },
-                ce('div', { className: 'page-header-bar' },
-                    ce('div', { className: 'page-stats-row' },
-                        ce('span', { className: 'page-stat' }, ce('strong', null, '$94.2K'), ' This Month'),
-                        ce('span', { className: 'page-stat' }, ce('strong', null, '847'), ' Transactions'),
-                        ce('span', { className: 'page-stat' }, ce('strong', null, '3'), ' Pending')
+        function Modal(props) {
+            if (!props.open) return null;
+            return ce('div', { className: 'modal-overlay', onClick: function (e) { if (e.target === e.currentTarget) props.onClose(); } },
+                ce('div', { className: 'modal-card ' + (props.size || '') },
+                    ce('div', { className: 'modal-header' },
+                        ce('h2', { className: 'modal-title' }, props.title),
+                        ce('button', { className: 'modal-close-btn', onClick: props.onClose }, '\u2715')
                     ),
-                    ce('button', { className: 'page-action-btn' }, '+ Record Payment')
-                ),
-                ce('div', { className: 'content-card' },
-                    ce('div', { className: 'table-wrapper' },
-                        ce('table', { className: 'page-table' },
-                            ce('thead', null,
-                                ce('tr', null,
-                                    ce('th', null, 'ID'),
-                                    ce('th', null, 'Student'),
-                                    ce('th', null, 'Amount'),
-                                    ce('th', null, 'Date'),
-                                    ce('th', null, 'Method'),
-                                    ce('th', null, 'Status')
+                    ce('div', { className: 'modal-body' }, props.children)
+                )
+            );
+        }
+
+        // =============================================
+        // FINANCE PAGE — Full Module
+        // =============================================
+        function FinancePage() {
+            // --- Tab State ---
+            var _tab = React.useState('course');
+            var activeTab = _tab[0]; var setActiveTab = _tab[1];
+
+            // --- Modal State ---
+            var _modal = React.useState({ open: false, type: '', data: null });
+            var modal = _modal[0]; var setModal = _modal[1];
+
+            function openModal(type, data) { setModal({ open: true, type: type, data: data || null }); }
+            function closeModal() { setModal({ open: false, type: '', data: null }); }
+
+            // ---- COURSE PAYMENTS DATA ----
+            var _cp = React.useState([
+                { id: 'PAY-3021', student: 'Sarah Chen', course: 'Advanced React', amount: 2450, method: 'Online Banking', plan: 'Full Payment', slip: 'slip_3021.jpg', date: '2026-02-24', enrollment: 'Paid', voided: false },
+                { id: 'PAY-3020', student: 'James Wilson', course: 'Python Fundamentals', amount: 1800, method: 'CDM', plan: 'Installment 1/3', slip: '', date: '2026-02-23', enrollment: 'Pending', voided: false },
+                { id: 'PAY-3019', student: 'Emily Davis', course: 'Data Science', amount: 3200, method: 'Online Banking', plan: 'Full Payment', slip: 'slip_3019.jpg', date: '2026-02-22', enrollment: 'Paid', voided: false },
+                { id: 'PAY-3018', student: 'Michael Brown', course: 'Web Design', amount: 2450, method: 'CDM', plan: 'Installment 2/3', slip: 'slip_3018.jpg', date: '2026-02-21', enrollment: 'Pending', voided: false },
+                { id: 'PAY-3017', student: 'Aisha Patel', course: 'Machine Learning', amount: 2800, method: 'Online Banking', plan: 'Full Payment', slip: 'slip_3017.jpg', date: '2026-02-20', enrollment: 'Paid', voided: false },
+                { id: 'PAY-3016', student: 'Carlos Rodriguez', course: 'Cybersecurity', amount: 1600, method: 'CDM', plan: 'Installment 1/2', slip: '', date: '2026-02-19', enrollment: 'Pending', voided: true },
+                { id: 'PAY-3015', student: 'Yuki Tanaka', course: 'Cloud Computing', amount: 2200, method: 'Online Banking', plan: 'Full Payment', slip: 'slip_3015.jpg', date: '2026-02-18', enrollment: 'Paid', voided: false },
+                { id: 'PAY-3014', student: 'Olivia Johnson', course: 'AI for Beginners', amount: 1950, method: 'CDM', plan: 'Installment 3/3', slip: 'slip_3014.jpg', date: '2026-02-17', enrollment: 'Paid', voided: false }
+            ]);
+            var coursePayments = _cp[0]; var setCoursePayments = _cp[1];
+
+            // ---- STAFF SALARIES DATA ----
+            var _ss = React.useState([
+                { id: 'SAL-201', name: 'Dr. Sarah Miller', role: 'Tutor', month: 'Feb 2026', amount: 4500, status: 'Paid', voided: false },
+                { id: 'SAL-202', name: 'Prof. John Smith', role: 'Tutor', month: 'Feb 2026', amount: 4200, status: 'Paid', voided: false },
+                { id: 'SAL-203', name: 'Raj Perera', role: 'Demonstrator', month: 'Feb 2026', amount: 2800, status: 'Paid', voided: false },
+                { id: 'SAL-204', name: 'Nimal Fernando', role: 'Demonstrator', month: 'Feb 2026', amount: 2800, status: 'Pending', voided: false },
+                { id: 'SAL-205', name: 'Kamala Silva', role: 'Typing Staff', month: 'Feb 2026', amount: 1800, status: 'Paid', voided: false },
+                { id: 'SAL-206', name: 'Anura Bandara', role: 'Typing Staff', month: 'Feb 2026', amount: 1800, status: 'Paid', voided: false },
+                { id: 'SAL-207', name: 'Dr. Emily Zhang', role: 'Tutor', month: 'Jan 2026', amount: 4500, status: 'Paid', voided: false },
+                { id: 'SAL-208', name: 'Ms. Lisa Park', role: 'Tutor', month: 'Jan 2026', amount: 4000, status: 'Paid', voided: true }
+            ]);
+            var staffSalaries = _ss[0]; var setStaffSalaries = _ss[1];
+
+            // ---- SUPPLIER PAYMENTS DATA ----
+            var _sp = React.useState([
+                { id: 'SUP-101', supplier: 'Lanka Paper Co.', item: 'A4 Paper (80gsm)', qty: 500, unitPrice: 3.20, date: '2026-02-22', status: 'Paid', voided: false },
+                { id: 'SUP-102', supplier: 'Island Stationers', item: 'A3 Paper (80gsm)', qty: 200, unitPrice: 5.50, date: '2026-02-20', status: 'Paid', voided: false },
+                { id: 'SUP-103', supplier: 'Lanka Paper Co.', item: 'A4 Paper (100gsm)', qty: 300, unitPrice: 4.00, date: '2026-02-18', status: 'Pending', voided: false },
+                { id: 'SUP-104', supplier: 'PrintMaster Supplies', item: 'A3 Paper (100gsm)', qty: 150, unitPrice: 6.80, date: '2026-02-15', status: 'Paid', voided: false },
+                { id: 'SUP-105', supplier: 'Island Stationers', item: 'A4 Paper (80gsm)', qty: 1000, unitPrice: 2.90, date: '2026-02-10', status: 'Paid', voided: true },
+                { id: 'SUP-106', supplier: 'Lanka Paper Co.', item: 'A3 Paper (80gsm)', qty: 250, unitPrice: 5.20, date: '2026-02-05', status: 'Paid', voided: false }
+            ]);
+            var supplierPayments = _sp[0]; var setSupplierPayments = _sp[1];
+
+            // ---- ID GENERATORS ----
+            var nextCpId = React.useRef(3022);
+            var nextSsId = React.useRef(209);
+            var nextSpId = React.useRef(107);
+
+            // ---- FORM STATE ----
+            var _form = React.useState({});
+            var form = _form[0]; var setForm = _form[1];
+            function updateForm(key, val) { setForm(function (prev) { var n = {}; for (var k in prev) n[k] = prev[k]; n[key] = val; return n; }); }
+
+            // ---- CRUD HANDLERS: Course Payments ----
+            function addCoursePayment() {
+                var newId = 'PAY-' + nextCpId.current++;
+                var rec = { id: newId, student: form.student || '', course: form.course || '', amount: parseFloat(form.amount) || 0, method: form.method || 'Online Banking', plan: form.plan || 'Full Payment', slip: form.slip || '', date: new Date().toISOString().slice(0, 10), enrollment: 'Pending', voided: false };
+                setCoursePayments(function (prev) { return [rec].concat(prev); });
+                closeModal();
+            }
+            function editCoursePayment() {
+                setCoursePayments(function (prev) { return prev.map(function (p) { if (p.id !== modal.data.id) return p; return { id: p.id, student: form.student || p.student, course: form.course || p.course, amount: parseFloat(form.amount) || p.amount, method: form.method || p.method, plan: form.plan || p.plan, slip: form.slip || p.slip, date: p.date, enrollment: form.enrollment || p.enrollment, voided: p.voided }; }); });
+                closeModal();
+            }
+            function voidCoursePayment(id) {
+                setCoursePayments(function (prev) { return prev.map(function (p) { if (p.id !== id) return p; var c = {}; for (var k in p) c[k] = p[k]; c.voided = true; return c; }); });
+            }
+            function deleteCoursePayment(id) {
+                setCoursePayments(function (prev) { return prev.filter(function (p) { return p.id !== id; }); });
+            }
+
+            // ---- CRUD HANDLERS: Staff Salaries ----
+            function addStaffSalary() {
+                var newId = 'SAL-' + nextSsId.current++;
+                var rec = { id: newId, name: form.name || '', role: form.role || 'Tutor', month: form.month || '', amount: parseFloat(form.amount) || 0, status: 'Pending', voided: false };
+                setStaffSalaries(function (prev) { return [rec].concat(prev); });
+                closeModal();
+            }
+            function editStaffSalary() {
+                setStaffSalaries(function (prev) { return prev.map(function (s) { if (s.id !== modal.data.id) return s; return { id: s.id, name: form.name || s.name, role: form.role || s.role, month: form.month || s.month, amount: parseFloat(form.amount) || s.amount, status: form.status || s.status, voided: s.voided }; }); });
+                closeModal();
+            }
+            function voidStaffSalary(id) {
+                setStaffSalaries(function (prev) { return prev.map(function (s) { if (s.id !== id) return s; var c = {}; for (var k in s) c[k] = s[k]; c.voided = true; return c; }); });
+            }
+            function deleteStaffSalary(id) {
+                setStaffSalaries(function (prev) { return prev.filter(function (s) { return s.id !== id; }); });
+            }
+
+            // ---- CRUD HANDLERS: Supplier Payments ----
+            function addSupplierPayment() {
+                var newId = 'SUP-' + nextSpId.current++;
+                var rec = { id: newId, supplier: form.supplier || '', item: form.item || '', qty: parseInt(form.qty) || 0, unitPrice: parseFloat(form.unitPrice) || 0, date: new Date().toISOString().slice(0, 10), status: 'Pending', voided: false };
+                setSupplierPayments(function (prev) { return [rec].concat(prev); });
+                closeModal();
+            }
+            function editSupplierPayment() {
+                setSupplierPayments(function (prev) { return prev.map(function (s) { if (s.id !== modal.data.id) return s; return { id: s.id, supplier: form.supplier || s.supplier, item: form.item || s.item, qty: parseInt(form.qty) || s.qty, unitPrice: parseFloat(form.unitPrice) || s.unitPrice, date: s.date, status: form.status || s.status, voided: s.voided }; }); });
+                closeModal();
+            }
+            function voidSupplierPayment(id) {
+                setSupplierPayments(function (prev) { return prev.map(function (s) { if (s.id !== id) return s; var c = {}; for (var k in s) c[k] = s[k]; c.voided = true; return c; }); });
+            }
+            function deleteSupplierPayment(id) {
+                setSupplierPayments(function (prev) { return prev.filter(function (s) { return s.id !== id; }); });
+            }
+
+            // ---- Open edit with pre-filled form ----
+            function openEdit(type, data) {
+                var f = {}; for (var k in data) f[k] = data[k];
+                setForm(f);
+                openModal(type, data);
+            }
+
+            // ---- Open add with empty form ----
+            function openAdd(type) {
+                setForm({});
+                openModal(type, null);
+            }
+
+            // ---- STATS ----
+            var totalCourseRev = coursePayments.filter(function (p) { return !p.voided; }).reduce(function (s, p) { return s + p.amount; }, 0);
+            var paidCount = coursePayments.filter(function (p) { return p.enrollment === 'Paid' && !p.voided; }).length;
+            var pendingCount = coursePayments.filter(function (p) { return p.enrollment === 'Pending' && !p.voided; }).length;
+            var totalSalaries = staffSalaries.filter(function (s) { return !s.voided; }).reduce(function (a, s) { return a + s.amount; }, 0);
+            var totalSupplier = supplierPayments.filter(function (s) { return !s.voided; }).reduce(function (a, s) { return a + (s.qty * s.unitPrice); }, 0);
+
+            // ====== MODAL CONTENT RENDER ======
+            function renderModalContent() {
+                var t = modal.type;
+                var d = modal.data;
+
+                // --- Receipt View ---
+                if (t === 'receipt') {
+                    return ce('div', { className: 'receipt-view' },
+                        ce('div', { className: 'receipt-header' },
+                            ce('div', { className: 'receipt-logo' }, '\uD83C\uDF93'),
+                            ce('h2', null, 'HiTech Educational Institute'),
+                            ce('p', null, 'Official Payment Receipt')
+                        ),
+                        ce('div', { className: 'receipt-divider' }),
+                        ce('div', { className: 'receipt-row' }, ce('span', null, 'Receipt No:'), ce('strong', null, d.id)),
+                        ce('div', { className: 'receipt-row' }, ce('span', null, 'Date:'), ce('strong', null, d.date)),
+                        ce('div', { className: 'receipt-row' }, ce('span', null, 'Student:'), ce('strong', null, d.student)),
+                        ce('div', { className: 'receipt-row' }, ce('span', null, 'Course:'), ce('strong', null, d.course)),
+                        ce('div', { className: 'receipt-row' }, ce('span', null, 'Payment Plan:'), ce('strong', null, d.plan)),
+                        ce('div', { className: 'receipt-row' }, ce('span', null, 'Method:'), ce('strong', null, d.method)),
+                        ce('div', { className: 'receipt-divider' }),
+                        ce('div', { className: 'receipt-row receipt-total' }, ce('span', null, 'Amount Paid:'), ce('strong', null, '$' + d.amount.toFixed(2))),
+                        ce('div', { className: 'receipt-row' }, ce('span', null, 'Status:'), ce('span', { className: 'status-badge ' + (d.enrollment === 'Paid' ? 'active' : 'warning') }, d.enrollment)),
+                        ce('div', { className: 'receipt-divider' }),
+                        ce('div', { className: 'receipt-footer' },
+                            ce('p', null, 'Thank you for your payment!'),
+                            ce('p', { className: 'receipt-small' }, 'This is a computer-generated receipt.')
+                        )
+                    );
+                }
+
+                // --- Void Confirm ---
+                if (t === 'void-confirm') {
+                    return ce('div', { className: 'void-confirm' },
+                        ce('div', { className: 'void-icon' }, '\u26A0\uFE0F'),
+                        ce('p', null, 'Are you sure you want to void record ', ce('strong', null, d.id), '?'),
+                        ce('p', { className: 'void-warning' }, 'This action marks the record as invalid. It cannot be undone.'),
+                        ce('div', { className: 'form-actions' },
+                            ce('button', { className: 'btn-secondary', onClick: closeModal }, 'Cancel'),
+                            ce('button', {
+                                className: 'btn-danger', onClick: function () {
+                                    if (d._voidType === 'course') voidCoursePayment(d.id);
+                                    else if (d._voidType === 'salary') voidStaffSalary(d.id);
+                                    else if (d._voidType === 'supplier') voidSupplierPayment(d.id);
+                                    closeModal();
+                                }
+                            }, 'Void Record')
+                        )
+                    );
+                }
+
+                // --- Add/Edit Course Payment ---
+                if (t === 'add-course' || t === 'edit-course') {
+                    var isEdit = t === 'edit-course';
+                    return ce('form', { onSubmit: function (e) { e.preventDefault(); isEdit ? editCoursePayment() : addCoursePayment(); } },
+                        ce('div', { className: 'form-row' },
+                            ce('div', { className: 'form-group' },
+                                ce('label', { className: 'form-label' }, 'Student Name'),
+                                ce('input', { className: 'form-input', value: form.student || '', onChange: function (e) { updateForm('student', e.target.value); }, required: true })
+                            ),
+                            ce('div', { className: 'form-group' },
+                                ce('label', { className: 'form-label' }, 'Course'),
+                                ce('select', { className: 'form-input', value: form.course || '', onChange: function (e) { updateForm('course', e.target.value); }, required: true },
+                                    ce('option', { value: '' }, '-- Select Course --'),
+                                    ['Advanced React', 'Python Fundamentals', 'Data Science', 'Machine Learning', 'Web Design', 'Cybersecurity', 'Cloud Computing', 'AI for Beginners'].map(function (c) {
+                                        return ce('option', { key: c, value: c }, c);
+                                    })
+                                )
+                            )
+                        ),
+                        ce('div', { className: 'form-row' },
+                            ce('div', { className: 'form-group' },
+                                ce('label', { className: 'form-label' }, 'Amount ($)'),
+                                ce('input', { className: 'form-input', type: 'number', step: '0.01', value: form.amount || '', onChange: function (e) { updateForm('amount', e.target.value); }, required: true })
+                            ),
+                            ce('div', { className: 'form-group' },
+                                ce('label', { className: 'form-label' }, 'Payment Method'),
+                                ce('select', { className: 'form-input', value: form.method || 'Online Banking', onChange: function (e) { updateForm('method', e.target.value); } },
+                                    ce('option', { value: 'Online Banking' }, 'Online Banking'),
+                                    ce('option', { value: 'CDM' }, 'CDM (Cash Deposit Machine)')
+                                )
+                            )
+                        ),
+                        ce('div', { className: 'form-row' },
+                            ce('div', { className: 'form-group' },
+                                ce('label', { className: 'form-label' }, 'Payment Plan'),
+                                ce('select', { className: 'form-input', value: form.plan || 'Full Payment', onChange: function (e) { updateForm('plan', e.target.value); } },
+                                    ce('option', { value: 'Full Payment' }, 'Full Payment'),
+                                    ce('option', { value: 'Installment 1/2' }, 'Installment 1 of 2'),
+                                    ce('option', { value: 'Installment 2/2' }, 'Installment 2 of 2'),
+                                    ce('option', { value: 'Installment 1/3' }, 'Installment 1 of 3'),
+                                    ce('option', { value: 'Installment 2/3' }, 'Installment 2 of 3'),
+                                    ce('option', { value: 'Installment 3/3' }, 'Installment 3 of 3')
                                 )
                             ),
-                            ce('tbody', null,
-                                payments.map(function (p) {
-                                    return ce('tr', { key: p.id },
-                                        ce('td', { className: 'td-id' }, p.id),
-                                        ce('td', { className: 'td-name' }, p.student),
-                                        ce('td', { className: 'td-amount' }, p.amount),
-                                        ce('td', null, p.date),
-                                        ce('td', null, p.method),
-                                        ce('td', null, ce('span', { className: 'status-badge ' + statusColors[p.status] }, p.status))
-                                    );
-                                })
+                            isEdit ? ce('div', { className: 'form-group' },
+                                ce('label', { className: 'form-label' }, 'Enrollment Status'),
+                                ce('select', { className: 'form-input', value: form.enrollment || 'Pending', onChange: function (e) { updateForm('enrollment', e.target.value); } },
+                                    ce('option', { value: 'Pending' }, 'Pending'),
+                                    ce('option', { value: 'Paid' }, 'Paid')
+                                )
+                            ) : null
+                        ),
+                        ce('div', { className: 'form-group' },
+                            ce('label', { className: 'form-label' }, 'Upload Payment Slip'),
+                            ce('div', { className: 'file-upload-area' },
+                                ce('input', {
+                                    type: 'file', accept: 'image/*', className: 'file-input', id: 'slip-upload', onChange: function (e) {
+                                        var fname = e.target.files && e.target.files[0] ? e.target.files[0].name : '';
+                                        updateForm('slip', fname);
+                                    }
+                                }),
+                                ce('label', { htmlFor: 'slip-upload', className: 'file-upload-label' },
+                                    ce('span', { className: 'file-upload-icon' }, '\uD83D\uDCC4'),
+                                    ce('span', null, form.slip ? 'Selected: ' + form.slip : 'Click to upload payment slip'),
+                                    ce('span', { className: 'file-upload-hint' }, 'JPG, PNG or PDF')
+                                )
+                            )
+                        ),
+                        ce('div', { className: 'form-actions' },
+                            ce('button', { type: 'button', className: 'btn-secondary', onClick: closeModal }, 'Cancel'),
+                            ce('button', { type: 'submit', className: 'btn-primary' }, isEdit ? 'Update Payment' : 'Record Payment')
+                        )
+                    );
+                }
+
+                // --- Add/Edit Staff Salary ---
+                if (t === 'add-salary' || t === 'edit-salary') {
+                    var isEdit2 = t === 'edit-salary';
+                    return ce('form', { onSubmit: function (e) { e.preventDefault(); isEdit2 ? editStaffSalary() : addStaffSalary(); } },
+                        ce('div', { className: 'form-row' },
+                            ce('div', { className: 'form-group' },
+                                ce('label', { className: 'form-label' }, 'Staff Name'),
+                                ce('input', { className: 'form-input', value: form.name || '', onChange: function (e) { updateForm('name', e.target.value); }, required: true })
+                            ),
+                            ce('div', { className: 'form-group' },
+                                ce('label', { className: 'form-label' }, 'Role'),
+                                ce('select', { className: 'form-input', value: form.role || 'Tutor', onChange: function (e) { updateForm('role', e.target.value); } },
+                                    ce('option', { value: 'Tutor' }, 'Tutor'),
+                                    ce('option', { value: 'Demonstrator' }, 'Demonstrator'),
+                                    ce('option', { value: 'Typing Staff' }, 'Typing Staff')
+                                )
+                            )
+                        ),
+                        ce('div', { className: 'form-row' },
+                            ce('div', { className: 'form-group' },
+                                ce('label', { className: 'form-label' }, 'Month'),
+                                ce('input', { className: 'form-input', placeholder: 'e.g. Feb 2026', value: form.month || '', onChange: function (e) { updateForm('month', e.target.value); }, required: true })
+                            ),
+                            ce('div', { className: 'form-group' },
+                                ce('label', { className: 'form-label' }, 'Amount ($)'),
+                                ce('input', { className: 'form-input', type: 'number', step: '0.01', value: form.amount || '', onChange: function (e) { updateForm('amount', e.target.value); }, required: true })
+                            )
+                        ),
+                        isEdit2 ? ce('div', { className: 'form-group' },
+                            ce('label', { className: 'form-label' }, 'Status'),
+                            ce('select', { className: 'form-input', value: form.status || 'Pending', onChange: function (e) { updateForm('status', e.target.value); } },
+                                ce('option', { value: 'Pending' }, 'Pending'),
+                                ce('option', { value: 'Paid' }, 'Paid')
+                            )
+                        ) : null,
+                        ce('div', { className: 'form-actions' },
+                            ce('button', { type: 'button', className: 'btn-secondary', onClick: closeModal }, 'Cancel'),
+                            ce('button', { type: 'submit', className: 'btn-primary' }, isEdit2 ? 'Update Salary' : 'Add Salary')
+                        )
+                    );
+                }
+
+                // --- Add/Edit Supplier Payment ---
+                if (t === 'add-supplier' || t === 'edit-supplier') {
+                    var isEdit3 = t === 'edit-supplier';
+                    return ce('form', { onSubmit: function (e) { e.preventDefault(); isEdit3 ? editSupplierPayment() : addSupplierPayment(); } },
+                        ce('div', { className: 'form-row' },
+                            ce('div', { className: 'form-group' },
+                                ce('label', { className: 'form-label' }, 'Supplier Name'),
+                                ce('input', { className: 'form-input', value: form.supplier || '', onChange: function (e) { updateForm('supplier', e.target.value); }, required: true })
+                            ),
+                            ce('div', { className: 'form-group' },
+                                ce('label', { className: 'form-label' }, 'Item'),
+                                ce('select', { className: 'form-input', value: form.item || '', onChange: function (e) { updateForm('item', e.target.value); }, required: true },
+                                    ce('option', { value: '' }, '-- Select Item --'),
+                                    ce('option', { value: 'A4 Paper (80gsm)' }, 'A4 Paper (80gsm)'),
+                                    ce('option', { value: 'A4 Paper (100gsm)' }, 'A4 Paper (100gsm)'),
+                                    ce('option', { value: 'A3 Paper (80gsm)' }, 'A3 Paper (80gsm)'),
+                                    ce('option', { value: 'A3 Paper (100gsm)' }, 'A3 Paper (100gsm)')
+                                )
+                            )
+                        ),
+                        ce('div', { className: 'form-row' },
+                            ce('div', { className: 'form-group' },
+                                ce('label', { className: 'form-label' }, 'Quantity (reams)'),
+                                ce('input', { className: 'form-input', type: 'number', value: form.qty || '', onChange: function (e) { updateForm('qty', e.target.value); }, required: true })
+                            ),
+                            ce('div', { className: 'form-group' },
+                                ce('label', { className: 'form-label' }, 'Unit Price ($)'),
+                                ce('input', { className: 'form-input', type: 'number', step: '0.01', value: form.unitPrice || '', onChange: function (e) { updateForm('unitPrice', e.target.value); }, required: true })
+                            )
+                        ),
+                        isEdit3 ? ce('div', { className: 'form-group' },
+                            ce('label', { className: 'form-label' }, 'Status'),
+                            ce('select', { className: 'form-input', value: form.status || 'Pending', onChange: function (e) { updateForm('status', e.target.value); } },
+                                ce('option', { value: 'Pending' }, 'Pending'),
+                                ce('option', { value: 'Paid' }, 'Paid')
+                            )
+                        ) : null,
+                        ce('div', { className: 'form-actions' },
+                            ce('button', { type: 'button', className: 'btn-secondary', onClick: closeModal }, 'Cancel'),
+                            ce('button', { type: 'submit', className: 'btn-primary' }, isEdit3 ? 'Update Payment' : 'Add Payment')
+                        )
+                    );
+                }
+
+                return null;
+            }
+
+            // ====== TAB CONTENT RENDERERS ======
+
+            // --- Course Payments Tab ---
+            function renderCoursePayments() {
+                return ce(React.Fragment, null,
+                    ce('div', { className: 'page-header-bar' },
+                        ce('div', { className: 'page-stats-row' },
+                            ce('span', { className: 'page-stat' }, ce('strong', null, '$' + totalCourseRev.toLocaleString()), ' Revenue'),
+                            ce('span', { className: 'page-stat' }, ce('strong', null, paidCount), ' Paid'),
+                            ce('span', { className: 'page-stat' }, ce('strong', null, pendingCount), ' Pending')
+                        ),
+                        ce('button', { className: 'page-action-btn', onClick: function () { openAdd('add-course'); } }, '+ Record Payment')
+                    ),
+                    ce('div', { className: 'content-card' },
+                        ce('div', { className: 'table-wrapper' },
+                            ce('table', { className: 'page-table' },
+                                ce('thead', null,
+                                    ce('tr', null,
+                                        ce('th', null, 'ID'),
+                                        ce('th', null, 'Student'),
+                                        ce('th', null, 'Course'),
+                                        ce('th', null, 'Plan'),
+                                        ce('th', null, 'Method'),
+                                        ce('th', null, 'Amount'),
+                                        ce('th', null, 'Enrollment'),
+                                        ce('th', null, 'Slip'),
+                                        ce('th', null, 'Actions')
+                                    )
+                                ),
+                                ce('tbody', null,
+                                    coursePayments.map(function (p) {
+                                        var rowClass = p.voided ? 'voided-row' : '';
+                                        return ce('tr', { key: p.id, className: rowClass },
+                                            ce('td', { className: 'td-id' }, p.id, p.voided ? ce('span', { className: 'void-badge' }, 'VOID') : null),
+                                            ce('td', { className: 'td-name' }, p.student),
+                                            ce('td', null, p.course),
+                                            ce('td', null, ce('span', { className: 'plan-badge' }, p.plan)),
+                                            ce('td', null, p.method),
+                                            ce('td', { className: 'td-amount' }, '$' + p.amount.toFixed(2)),
+                                            ce('td', null, ce('span', { className: 'status-badge ' + (p.enrollment === 'Paid' ? 'active' : 'warning') }, p.enrollment)),
+                                            ce('td', null, p.slip ? ce('span', { className: 'slip-indicator', title: p.slip }, '\uD83D\uDCC4 Yes') : ce('span', { className: 'no-slip' }, '\u2014')),
+                                            ce('td', null,
+                                                ce('div', { className: 'action-btns' },
+                                                    !p.voided ? ce('button', { className: 'action-btn view', title: 'Receipt', onClick: function () { openModal('receipt', p); } }, '\uD83E\uDDFE') : null,
+                                                    !p.voided ? ce('button', { className: 'action-btn edit', title: 'Edit', onClick: function () { openEdit('edit-course', p); } }, '\u270F\uFE0F') : null,
+                                                    !p.voided ? ce('button', { className: 'action-btn void', title: 'Void', onClick: function () { var v = {}; for (var k in p) v[k] = p[k]; v._voidType = 'course'; openModal('void-confirm', v); } }, '\u26D4') : null,
+                                                    ce('button', { className: 'action-btn delete', title: 'Delete', onClick: function () { deleteCoursePayment(p.id); } }, '\uD83D\uDDD1\uFE0F')
+                                                )
+                                            )
+                                        );
+                                    })
+                                )
                             )
                         )
                     )
-                )
+                );
+            }
+
+            // --- Staff Salaries Tab ---
+            function renderStaffSalaries() {
+                return ce(React.Fragment, null,
+                    ce('div', { className: 'page-header-bar' },
+                        ce('div', { className: 'page-stats-row' },
+                            ce('span', { className: 'page-stat' }, ce('strong', null, '$' + totalSalaries.toLocaleString()), ' Total'),
+                            ce('span', { className: 'page-stat' }, ce('strong', null, staffSalaries.filter(function (s) { return s.role === 'Tutor' && !s.voided; }).length), ' Tutors'),
+                            ce('span', { className: 'page-stat' }, ce('strong', null, staffSalaries.filter(function (s) { return s.role === 'Demonstrator' && !s.voided; }).length), ' Demonstrators'),
+                            ce('span', { className: 'page-stat' }, ce('strong', null, staffSalaries.filter(function (s) { return s.role === 'Typing Staff' && !s.voided; }).length), ' Typing Staff')
+                        ),
+                        ce('button', { className: 'page-action-btn', onClick: function () { openAdd('add-salary'); } }, '+ Add Salary')
+                    ),
+                    ce('div', { className: 'content-card' },
+                        ce('div', { className: 'table-wrapper' },
+                            ce('table', { className: 'page-table' },
+                                ce('thead', null,
+                                    ce('tr', null,
+                                        ce('th', null, 'ID'),
+                                        ce('th', null, 'Name'),
+                                        ce('th', null, 'Role'),
+                                        ce('th', null, 'Month'),
+                                        ce('th', null, 'Amount'),
+                                        ce('th', null, 'Status'),
+                                        ce('th', null, 'Actions')
+                                    )
+                                ),
+                                ce('tbody', null,
+                                    staffSalaries.map(function (s) {
+                                        var rowClass = s.voided ? 'voided-row' : '';
+                                        var roleColors = { 'Tutor': 'purple', 'Demonstrator': 'info', 'Typing Staff': 'active' };
+                                        return ce('tr', { key: s.id, className: rowClass },
+                                            ce('td', { className: 'td-id' }, s.id, s.voided ? ce('span', { className: 'void-badge' }, 'VOID') : null),
+                                            ce('td', { className: 'td-name' }, s.name),
+                                            ce('td', null, ce('span', { className: 'status-badge ' + roleColors[s.role] }, s.role)),
+                                            ce('td', null, s.month),
+                                            ce('td', { className: 'td-amount' }, '$' + s.amount.toFixed(2)),
+                                            ce('td', null, ce('span', { className: 'status-badge ' + (s.status === 'Paid' ? 'active' : 'warning') }, s.status)),
+                                            ce('td', null,
+                                                ce('div', { className: 'action-btns' },
+                                                    !s.voided ? ce('button', { className: 'action-btn edit', title: 'Edit', onClick: function () { openEdit('edit-salary', s); } }, '\u270F\uFE0F') : null,
+                                                    !s.voided ? ce('button', { className: 'action-btn void', title: 'Void', onClick: function () { var v = {}; for (var k in s) v[k] = s[k]; v._voidType = 'salary'; openModal('void-confirm', v); } }, '\u26D4') : null,
+                                                    ce('button', { className: 'action-btn delete', title: 'Delete', onClick: function () { deleteStaffSalary(s.id); } }, '\uD83D\uDDD1\uFE0F')
+                                                )
+                                            )
+                                        );
+                                    })
+                                )
+                            )
+                        )
+                    )
+                );
+            }
+
+            // --- Supplier Payments Tab ---
+            function renderSupplierPayments() {
+                return ce(React.Fragment, null,
+                    ce('div', { className: 'page-header-bar' },
+                        ce('div', { className: 'page-stats-row' },
+                            ce('span', { className: 'page-stat' }, ce('strong', null, '$' + totalSupplier.toFixed(2)), ' Total'),
+                            ce('span', { className: 'page-stat' }, ce('strong', null, supplierPayments.filter(function (s) { return !s.voided; }).length), ' Records')
+                        ),
+                        ce('button', { className: 'page-action-btn', onClick: function () { openAdd('add-supplier'); } }, '+ Add Payment')
+                    ),
+                    ce('div', { className: 'content-card' },
+                        ce('div', { className: 'table-wrapper' },
+                            ce('table', { className: 'page-table' },
+                                ce('thead', null,
+                                    ce('tr', null,
+                                        ce('th', null, 'ID'),
+                                        ce('th', null, 'Supplier'),
+                                        ce('th', null, 'Item'),
+                                        ce('th', null, 'Qty'),
+                                        ce('th', null, 'Unit Price'),
+                                        ce('th', null, 'Total'),
+                                        ce('th', null, 'Date'),
+                                        ce('th', null, 'Status'),
+                                        ce('th', null, 'Actions')
+                                    )
+                                ),
+                                ce('tbody', null,
+                                    supplierPayments.map(function (s) {
+                                        var rowClass = s.voided ? 'voided-row' : '';
+                                        var total = (s.qty * s.unitPrice).toFixed(2);
+                                        return ce('tr', { key: s.id, className: rowClass },
+                                            ce('td', { className: 'td-id' }, s.id, s.voided ? ce('span', { className: 'void-badge' }, 'VOID') : null),
+                                            ce('td', { className: 'td-name' }, s.supplier),
+                                            ce('td', null, s.item),
+                                            ce('td', null, s.qty),
+                                            ce('td', null, '$' + s.unitPrice.toFixed(2)),
+                                            ce('td', { className: 'td-amount' }, '$' + total),
+                                            ce('td', null, s.date),
+                                            ce('td', null, ce('span', { className: 'status-badge ' + (s.status === 'Paid' ? 'active' : 'warning') }, s.status)),
+                                            ce('td', null,
+                                                ce('div', { className: 'action-btns' },
+                                                    !s.voided ? ce('button', { className: 'action-btn edit', title: 'Edit', onClick: function () { openEdit('edit-supplier', s); } }, '\u270F\uFE0F') : null,
+                                                    !s.voided ? ce('button', { className: 'action-btn void', title: 'Void', onClick: function () { var v = {}; for (var k in s) v[k] = s[k]; v._voidType = 'supplier'; openModal('void-confirm', v); } }, '\u26D4') : null,
+                                                    ce('button', { className: 'action-btn delete', title: 'Delete', onClick: function () { deleteSupplierPayment(s.id); } }, '\uD83D\uDDD1\uFE0F')
+                                                )
+                                            )
+                                        );
+                                    })
+                                )
+                            )
+                        )
+                    )
+                );
+            }
+
+            // ====== TABS CONFIG ======
+            var tabs = [
+                { key: 'course', icon: '\uD83C\uDF93', label: 'Course Payments' },
+                { key: 'salary', icon: '\uD83D\uDC65', label: 'Staff Salaries' },
+                { key: 'supplier', icon: '\uD83D\uDCE6', label: 'Supplier Payments' }
+            ];
+
+            // ====== MODAL TITLES ======
+            var modalTitles = {
+                'add-course': '\uD83D\uDCB3 Record Course Payment',
+                'edit-course': '\u270F\uFE0F Edit Course Payment',
+                'add-salary': '\uD83D\uDCB0 Add Staff Salary',
+                'edit-salary': '\u270F\uFE0F Edit Staff Salary',
+                'add-supplier': '\uD83D\uDCE6 Add Supplier Payment',
+                'edit-supplier': '\u270F\uFE0F Edit Supplier Payment',
+                'receipt': '\uD83E\uDDFE Payment Receipt',
+                'void-confirm': '\u26D4 Void Record'
+            };
+
+            return ce(DashboardLayout, {
+                currentRoute: '/finance',
+                pageTitle: 'Finance Management',
+                pageSubtitle: 'Manage payments, salaries, and supplier invoices.'
+            },
+                // Tab Navigation
+                ce('div', { className: 'finance-tabs' },
+                    tabs.map(function (tab) {
+                        return ce('button', {
+                            key: tab.key,
+                            className: 'finance-tab' + (activeTab === tab.key ? ' active' : ''),
+                            onClick: function () { setActiveTab(tab.key); }
+                        }, ce('span', { className: 'tab-icon' }, tab.icon), ' ', tab.label);
+                    })
+                ),
+
+                // Tab Content
+                activeTab === 'course' ? renderCoursePayments() : null,
+                activeTab === 'salary' ? renderStaffSalaries() : null,
+                activeTab === 'supplier' ? renderSupplierPayments() : null,
+
+                // Modal
+                ce(Modal, {
+                    open: modal.open,
+                    title: modalTitles[modal.type] || '',
+                    onClose: closeModal,
+                    size: modal.type === 'receipt' ? 'modal-receipt' : ''
+                }, renderModalContent())
             );
         }
 
@@ -701,7 +1223,7 @@
                 case '/students': return ce(StudentsPage, null);
                 case '/courses': return ce(CoursesPage, null);
                 case '/exams': return ce(ExamsPage, null);
-                case '/payments': return ce(PaymentsPage, null);
+                case '/finance': return ce(FinancePage, null);
                 case '/helpdesk': return ce(HelpdeskPage, null);
                 case '/settings': return ce(SettingsPage, null);
                 default: return ce(DashboardPage, null);
