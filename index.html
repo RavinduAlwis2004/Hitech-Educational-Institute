@@ -1,0 +1,1240 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="HiTech Educational Institute — Learning Management Dashboard" />
+    <title>HiTech Educational Institute</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet" />
+    <link rel="stylesheet" href="css/styles.css" />
+
+    <!-- React 18 -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+</head>
+
+<body>
+    <div id="root"></div>
+    <script>
+        'use strict';
+
+        var ce = React.createElement;
+
+        // =============================================
+        // SIMPLE HASH ROUTER (no dependencies)
+        // =============================================
+        function useHash() {
+            var _s = React.useState(window.location.hash || '#/');
+            var hash = _s[0];
+            var setHash = _s[1];
+
+            React.useEffect(function () {
+                function onHashChange() { setHash(window.location.hash || '#/'); }
+                window.addEventListener('hashchange', onHashChange);
+                return function () { window.removeEventListener('hashchange', onHashChange); };
+            }, []);
+
+            return hash;
+        }
+
+        function navigateTo(path) {
+            window.location.hash = '#' + path;
+        }
+
+        // =============================================
+        // LOGIN COMPONENT
+        // =============================================
+        function Login() {
+            var _email = React.useState('');
+            var email = _email[0]; var setEmail = _email[1];
+
+            var _pw = React.useState('');
+            var password = _pw[0]; var setPassword = _pw[1];
+
+            var _err = React.useState('');
+            var error = _err[0]; var setError = _err[1];
+
+            var _ld = React.useState(false);
+            var loading = _ld[0]; var setLoading = _ld[1];
+
+            function handleSubmit(ev) {
+                ev.preventDefault();
+                setError('');
+                setLoading(true);
+                setTimeout(function () {
+                    if (email === 'admin@hitech.edu' && password === 'password123') {
+                        localStorage.setItem('hitech_auth', JSON.stringify({
+                            user: 'Admin',
+                            email: email,
+                            role: 'Administrator',
+                            loggedInAt: new Date().toISOString()
+                        }));
+                        navigateTo('/dashboard');
+                    } else {
+                        setError('Invalid email or password. Please try again.');
+                    }
+                    setLoading(false);
+                }, 1200);
+            }
+
+            return ce('div', { className: 'login-page' },
+                ce('div', { className: 'login-card' },
+                    ce('div', { className: 'login-logo' },
+                        ce('div', { className: 'login-logo-icon' }, '\uD83C\uDF93'),
+                        ce('h1', { className: 'login-title' }, 'HiTech Institute')
+                    ),
+                    ce('p', { className: 'login-subtitle' }, 'Sign in to your learning portal'),
+
+                    error ? ce('div', { className: 'error-msg' }, error) : null,
+
+                    ce('form', { onSubmit: handleSubmit },
+                        ce('div', { className: 'form-group' },
+                            ce('label', { className: 'form-label', htmlFor: 'email' }, 'Email Address'),
+                            ce('input', {
+                                id: 'email', className: 'form-input', type: 'email',
+                                placeholder: 'you@hitech.edu', value: email,
+                                onChange: function (ev) { setEmail(ev.target.value); },
+                                required: true, autoComplete: 'email'
+                            })
+                        ),
+                        ce('div', { className: 'form-group' },
+                            ce('label', { className: 'form-label', htmlFor: 'password' }, 'Password'),
+                            ce('input', {
+                                id: 'password', className: 'form-input', type: 'password',
+                                placeholder: '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022', value: password,
+                                onChange: function (ev) { setPassword(ev.target.value); },
+                                required: true, autoComplete: 'current-password'
+                            })
+                        ),
+                        ce('button', {
+                            id: 'login-submit', className: 'login-btn',
+                            type: 'submit', disabled: loading
+                        },
+                            loading
+                                ? ce(React.Fragment, null, ce('span', { className: 'spinner' }), 'Signing in\u2026')
+                                : 'Sign In'
+                        )
+                    ),
+
+                    ce('div', { className: 'login-demo-hint' },
+                        ce('p', null,
+                            'Demo credentials:', ce('br', null),
+                            ce('code', null, 'admin@hitech.edu'), ' / ', ce('code', null, 'password123')
+                        )
+                    ),
+                    ce('div', { className: 'login-footer' }, '\u00A9 2026 HiTech Educational Institute')
+                )
+            );
+        }
+
+        // =============================================
+        // ROUTE CONFIG
+        // =============================================
+        var ROUTES = [
+            { path: '/dashboard', icon: '\uD83D\uDCCA', label: 'Dashboard', section: 'Main' },
+            { path: '/students', icon: '\uD83D\uDC68\u200D\uD83C\uDF93', label: 'Students', badge: '2.8K', section: 'Main' },
+            { path: '/courses', icon: '\uD83D\uDCDA', label: 'Courses', section: 'Main' },
+            { path: '/exams', icon: '\uD83D\uDCDD', label: 'Exams', section: 'Main' },
+            { path: '/finance', icon: '\uD83D\uDCB3', label: 'Finance', section: 'Management' },
+            { path: '/helpdesk', icon: '\uD83C\uDFA7', label: 'Helpdesk', section: 'Management' },
+            { path: '/settings', icon: '\u2699\uFE0F', label: 'Settings', section: 'Management' }
+        ];
+
+        // =============================================
+        // SIDEBAR COMPONENT (shared)
+        // =============================================
+        function Sidebar(props) {
+            var currentRoute = props.currentRoute;
+            var auth = props.auth;
+
+            function handleLogout() {
+                localStorage.removeItem('hitech_auth');
+                navigateTo('/');
+            }
+
+            var mainItems = ROUTES.filter(function (r) { return r.section === 'Main'; });
+            var mgmtItems = ROUTES.filter(function (r) { return r.section === 'Management'; });
+
+            return ce('aside', { className: 'sidebar' },
+                ce('div', { className: 'sidebar-brand' },
+                    ce('div', { className: 'sidebar-brand-icon' }, '\uD83C\uDF93'),
+                    ce('h2', null, 'HiTech', ce('br', null), ce('span', null, 'Educational Institute'))
+                ),
+                ce('nav', { className: 'sidebar-nav' },
+                    ce('div', { className: 'nav-section-label' }, 'Main'),
+                    mainItems.map(function (item) {
+                        var isActive = currentRoute === item.path;
+                        return ce('a', {
+                            className: 'nav-item' + (isActive ? ' active' : ''),
+                            href: '#' + item.path,
+                            key: item.path,
+                            onClick: function (e) { e.preventDefault(); navigateTo(item.path); }
+                        },
+                            ce('span', { className: 'nav-item-icon' }, item.icon),
+                            ' ' + item.label,
+                            item.badge ? ce('span', { className: 'nav-item-badge' }, item.badge) : null
+                        );
+                    }),
+                    ce('div', { className: 'nav-section-label' }, 'Management'),
+                    mgmtItems.map(function (item) {
+                        var isActive = currentRoute === item.path;
+                        return ce('a', {
+                            className: 'nav-item' + (isActive ? ' active' : ''),
+                            href: '#' + item.path,
+                            key: item.path,
+                            onClick: function (e) { e.preventDefault(); navigateTo(item.path); }
+                        },
+                            ce('span', { className: 'nav-item-icon' }, item.icon),
+                            ' ' + item.label,
+                            item.badge ? ce('span', { className: 'nav-item-badge' }, item.badge) : null
+                        );
+                    })
+                ),
+                ce('div', { className: 'sidebar-footer' },
+                    ce('div', { className: 'sidebar-user' },
+                        ce('div', { className: 'sidebar-avatar' }, auth.user.charAt(0)),
+                        ce('div', { className: 'sidebar-user-info' },
+                            ce('div', { className: 'sidebar-user-name' }, auth.user),
+                            ce('div', { className: 'sidebar-user-role' }, auth.role)
+                        )
+                    ),
+                    ce('button', { id: 'logout-btn', className: 'logout-btn', onClick: handleLogout },
+                        ce('span', null, '\uD83D\uDEAA'), ' Sign Out'
+                    )
+                )
+            );
+        }
+
+        // =============================================
+        // DASHBOARD LAYOUT WRAPPER
+        // =============================================
+        function DashboardLayout(props) {
+            var auth = JSON.parse(localStorage.getItem('hitech_auth') || '{}');
+            var currentRoute = props.currentRoute;
+            var pageTitle = props.pageTitle;
+            var pageSubtitle = props.pageSubtitle;
+
+            React.useEffect(function () {
+                if (!auth.user) navigateTo('/');
+            }, []);
+
+            if (!auth.user) return null;
+
+            return ce('div', { className: 'dashboard-layout' },
+                ce(Sidebar, { currentRoute: currentRoute, auth: auth }),
+                ce('main', { className: 'main-content' },
+                    ce('header', { className: 'dashboard-header' },
+                        ce('div', { className: 'header-left' },
+                            ce('h1', null, pageTitle),
+                            ce('p', null, pageSubtitle)
+                        ),
+                        ce('div', { className: 'header-right' },
+                            ce('button', { className: 'header-icon-btn', title: 'Notifications' },
+                                '\uD83D\uDD14', ce('span', { className: 'badge' })
+                            ),
+                            ce('button', { className: 'header-icon-btn', title: 'Messages' }, '\u2709\uFE0F')
+                        )
+                    ),
+                    ce('div', { className: 'dashboard-content' }, props.children)
+                )
+            );
+        }
+
+        // =============================================
+        // DASHBOARD PAGE (original content)
+        // =============================================
+        function DashboardPage() {
+            var auth = JSON.parse(localStorage.getItem('hitech_auth') || '{}');
+
+            var stats = [
+                { icon: '\uD83D\uDC68\u200D\uD83C\uDF93', value: '2,847', label: 'Total Students', trend: '+12.5%', up: true },
+                { icon: '\uD83D\uDCDA', value: '186', label: 'Active Courses', trend: '+8.3%', up: true },
+                { icon: '\uD83D\uDCB0', value: '$94.2K', label: 'Monthly Revenue', trend: '+23.1%', up: true },
+                { icon: '\uD83D\uDCCA', value: '91.4%', label: 'Completion Rate', trend: '-2.1%', up: false }
+            ];
+
+            var activities = [
+                { color: 'purple', name: 'Sarah Chen', action: ' enrolled in Advanced React', time: '2 minutes ago' },
+                { color: 'green', name: 'James Wilson', action: ' completed Python Fundamentals', time: '15 minutes ago' },
+                { color: 'orange', name: '', action: 'New course "AI for Beginners" was published', time: '1 hour ago' },
+                { color: 'blue', name: 'Emily Davis', action: ' submitted assignment in Data Science', time: '2 hours ago' },
+                { color: 'purple', name: '12 students', action: ' joined the Web Design cohort', time: '3 hours ago' },
+                { color: 'green', name: '', action: 'Monthly report for January is ready', time: '5 hours ago' }
+            ];
+
+            var chartHeights = [35, 55, 45, 70, 60, 85, 50, 75, 90, 65, 80, 70];
+            var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+            return ce(DashboardLayout, {
+                currentRoute: '/dashboard',
+                pageTitle: 'Dashboard',
+                pageSubtitle: 'Welcome back, ' + auth.user + "! Here's what's happening today."
+            },
+                // Stats
+                ce('div', { className: 'stats-grid' },
+                    stats.map(function (s, i) {
+                        return ce('div', { className: 'stat-card', key: 's' + i },
+                            ce('div', { className: 'stat-header' },
+                                ce('div', { className: 'stat-icon' }, s.icon),
+                                ce('span', { className: 'stat-trend ' + (s.up ? 'up' : 'down') },
+                                    (s.up ? '\u2191 ' : '\u2193 ') + s.trend
+                                )
+                            ),
+                            ce('div', { className: 'stat-value' }, s.value),
+                            ce('div', { className: 'stat-label' }, s.label)
+                        );
+                    })
+                ),
+                // Content Grid
+                ce('div', { className: 'content-grid' },
+                    // Chart
+                    ce('div', { className: 'content-card' },
+                        ce('div', { className: 'content-card-header' },
+                            ce('span', { className: 'content-card-title' }, 'Enrollment Overview'),
+                            ce('span', { className: 'content-card-action' }, 'View Report \u2192')
+                        ),
+                        ce('div', { className: 'chart-area' },
+                            chartHeights.map(function (h, i) {
+                                return ce('div', { className: 'chart-bar', key: 'c' + i, style: { height: h + '%' } });
+                            })
+                        ),
+                        ce('div', { className: 'chart-labels' },
+                            months.map(function (m, i) {
+                                return ce('span', { key: 'l' + i }, m);
+                            })
+                        )
+                    ),
+                    // Activity
+                    ce('div', { className: 'content-card' },
+                        ce('div', { className: 'content-card-header' },
+                            ce('span', { className: 'content-card-title' }, 'Recent Activity'),
+                            ce('span', { className: 'content-card-action' }, 'See All \u2192')
+                        ),
+                        ce('div', { className: 'activity-list' },
+                            activities.map(function (a, i) {
+                                return ce('div', { className: 'activity-item', key: 'a' + i },
+                                    ce('div', { className: 'activity-dot ' + a.color }),
+                                    ce('div', null,
+                                        ce('div', { className: 'activity-text' },
+                                            a.name ? ce('strong', null, a.name) : null,
+                                            a.action
+                                        ),
+                                        ce('div', { className: 'activity-time' }, a.time)
+                                    )
+                                );
+                            })
+                        )
+                    )
+                )
+            );
+        }
+
+        // =============================================
+        // STUDENTS PAGE
+        // =============================================
+        function StudentsPage() {
+            var students = [
+                { id: 'STU-001', name: 'Sarah Chen', email: 'sarah.chen@mail.com', course: 'Advanced React', status: 'Active', gpa: '3.8' },
+                { id: 'STU-002', name: 'James Wilson', email: 'j.wilson@mail.com', course: 'Python Fundamentals', status: 'Active', gpa: '3.5' },
+                { id: 'STU-003', name: 'Emily Davis', email: 'emily.d@mail.com', course: 'Data Science', status: 'Active', gpa: '3.9' },
+                { id: 'STU-004', name: 'Michael Brown', email: 'm.brown@mail.com', course: 'Web Design', status: 'On Leave', gpa: '3.2' },
+                { id: 'STU-005', name: 'Aisha Patel', email: 'aisha.p@mail.com', course: 'Machine Learning', status: 'Active', gpa: '3.7' },
+                { id: 'STU-006', name: 'Carlos Rodriguez', email: 'carlos.r@mail.com', course: 'Cybersecurity', status: 'Active', gpa: '3.4' },
+                { id: 'STU-007', name: 'Yuki Tanaka', email: 'yuki.t@mail.com', course: 'Cloud Computing', status: 'Graduated', gpa: '3.6' },
+                { id: 'STU-008', name: 'Olivia Johnson', email: 'o.johnson@mail.com', course: 'AI for Beginners', status: 'Active', gpa: '3.1' }
+            ];
+
+            var statusColors = { 'Active': 'active', 'On Leave': 'warning', 'Graduated': 'info' };
+
+            return ce(DashboardLayout, {
+                currentRoute: '/students',
+                pageTitle: 'Students',
+                pageSubtitle: 'Manage and track all enrolled students.'
+            },
+                ce('div', { className: 'page-header-bar' },
+                    ce('div', { className: 'page-stats-row' },
+                        ce('span', { className: 'page-stat' }, ce('strong', null, '2,847'), ' Total'),
+                        ce('span', { className: 'page-stat' }, ce('strong', null, '2,614'), ' Active'),
+                        ce('span', { className: 'page-stat' }, ce('strong', null, '89'), ' On Leave'),
+                        ce('span', { className: 'page-stat' }, ce('strong', null, '144'), ' Graduated')
+                    ),
+                    ce('button', { className: 'page-action-btn' }, '+ Add Student')
+                ),
+                ce('div', { className: 'content-card' },
+                    ce('div', { className: 'table-wrapper' },
+                        ce('table', { className: 'page-table' },
+                            ce('thead', null,
+                                ce('tr', null,
+                                    ce('th', null, 'ID'),
+                                    ce('th', null, 'Name'),
+                                    ce('th', null, 'Email'),
+                                    ce('th', null, 'Course'),
+                                    ce('th', null, 'GPA'),
+                                    ce('th', null, 'Status')
+                                )
+                            ),
+                            ce('tbody', null,
+                                students.map(function (s) {
+                                    return ce('tr', { key: s.id },
+                                        ce('td', { className: 'td-id' }, s.id),
+                                        ce('td', { className: 'td-name' }, s.name),
+                                        ce('td', { className: 'td-email' }, s.email),
+                                        ce('td', null, s.course),
+                                        ce('td', null, s.gpa),
+                                        ce('td', null, ce('span', { className: 'status-badge ' + statusColors[s.status] }, s.status))
+                                    );
+                                })
+                            )
+                        )
+                    )
+                )
+            );
+        }
+
+        // =============================================
+        // COURSES PAGE
+        // =============================================
+        function CoursesPage() {
+            var courses = [
+                { title: 'Advanced React', instructor: 'Dr. Sarah Miller', enrolled: 324, capacity: 400, progress: 72, color: 'purple' },
+                { title: 'Python Fundamentals', instructor: 'Prof. John Smith', enrolled: 512, capacity: 600, progress: 85, color: 'green' },
+                { title: 'Data Science', instructor: 'Dr. Emily Zhang', enrolled: 289, capacity: 350, progress: 63, color: 'blue' },
+                { title: 'Machine Learning', instructor: 'Prof. Alex Kumar', enrolled: 198, capacity: 250, progress: 45, color: 'orange' },
+                { title: 'Web Design', instructor: 'Ms. Lisa Park', enrolled: 445, capacity: 500, progress: 91, color: 'purple' },
+                { title: 'Cybersecurity', instructor: 'Dr. Mike Chen', enrolled: 167, capacity: 200, progress: 58, color: 'green' },
+                { title: 'Cloud Computing', instructor: 'Prof. Nina Roy', enrolled: 234, capacity: 300, progress: 77, color: 'blue' },
+                { title: 'AI for Beginners', instructor: 'Dr. Tom Harris', enrolled: 378, capacity: 450, progress: 34, color: 'orange' }
+            ];
+
+            return ce(DashboardLayout, {
+                currentRoute: '/courses',
+                pageTitle: 'Courses',
+                pageSubtitle: 'Browse and manage all available courses.'
+            },
+                ce('div', { className: 'page-header-bar' },
+                    ce('div', { className: 'page-stats-row' },
+                        ce('span', { className: 'page-stat' }, ce('strong', null, '186'), ' Total Courses'),
+                        ce('span', { className: 'page-stat' }, ce('strong', null, '24'), ' New This Month')
+                    ),
+                    ce('button', { className: 'page-action-btn' }, '+ New Course')
+                ),
+                ce('div', { className: 'course-grid' },
+                    courses.map(function (c, i) {
+                        var pct = Math.round((c.enrolled / c.capacity) * 100);
+                        return ce('div', { className: 'course-card', key: 'course' + i },
+                            ce('div', { className: 'course-color-bar ' + c.color }),
+                            ce('div', { className: 'course-card-body' },
+                                ce('h3', { className: 'course-title' }, c.title),
+                                ce('p', { className: 'course-instructor' }, c.instructor),
+                                ce('div', { className: 'course-meta' },
+                                    ce('span', null, '\uD83D\uDC65 ' + c.enrolled + '/' + c.capacity),
+                                    ce('span', null, c.progress + '% complete')
+                                ),
+                                ce('div', { className: 'progress-bar-track' },
+                                    ce('div', { className: 'progress-bar-fill ' + c.color, style: { width: c.progress + '%' } })
+                                )
+                            )
+                        );
+                    })
+                )
+            );
+        }
+
+        // =============================================
+        // EXAMS PAGE
+        // =============================================
+        function ExamsPage() {
+            var exams = [
+                { id: 'EXM-101', subject: 'Advanced React', date: '2026-03-15', time: '09:00 AM', duration: '2h', students: 324, status: 'Upcoming' },
+                { id: 'EXM-102', subject: 'Python Fundamentals', date: '2026-03-12', time: '10:30 AM', duration: '1.5h', students: 512, status: 'Upcoming' },
+                { id: 'EXM-103', subject: 'Data Science', date: '2026-03-10', time: '02:00 PM', duration: '2h', students: 289, status: 'Upcoming' },
+                { id: 'EXM-104', subject: 'Web Design', date: '2026-02-28', time: '09:00 AM', duration: '1.5h', students: 445, status: 'Scheduled' },
+                { id: 'EXM-105', subject: 'Machine Learning', date: '2026-02-20', time: '11:00 AM', duration: '3h', students: 198, status: 'Completed' },
+                { id: 'EXM-106', subject: 'Cybersecurity', date: '2026-02-18', time: '01:00 PM', duration: '2h', students: 167, status: 'Completed' },
+                { id: 'EXM-107', subject: 'Cloud Computing', date: '2026-02-15', time: '10:00 AM', duration: '2h', students: 234, status: 'Graded' },
+                { id: 'EXM-108', subject: 'AI for Beginners', date: '2026-02-10', time: '09:30 AM', duration: '1.5h', students: 378, status: 'Graded' }
+            ];
+
+            var statusColors = { 'Upcoming': 'warning', 'Scheduled': 'info', 'Completed': 'active', 'Graded': 'purple' };
+
+            return ce(DashboardLayout, {
+                currentRoute: '/exams',
+                pageTitle: 'Exams',
+                pageSubtitle: 'Schedule and manage examinations.'
+            },
+                ce('div', { className: 'page-header-bar' },
+                    ce('div', { className: 'page-stats-row' },
+                        ce('span', { className: 'page-stat' }, ce('strong', null, '3'), ' Upcoming'),
+                        ce('span', { className: 'page-stat' }, ce('strong', null, '1'), ' Scheduled'),
+                        ce('span', { className: 'page-stat' }, ce('strong', null, '4'), ' Completed')
+                    ),
+                    ce('button', { className: 'page-action-btn' }, '+ Schedule Exam')
+                ),
+                ce('div', { className: 'content-card' },
+                    ce('div', { className: 'table-wrapper' },
+                        ce('table', { className: 'page-table' },
+                            ce('thead', null,
+                                ce('tr', null,
+                                    ce('th', null, 'ID'),
+                                    ce('th', null, 'Subject'),
+                                    ce('th', null, 'Date'),
+                                    ce('th', null, 'Time'),
+                                    ce('th', null, 'Duration'),
+                                    ce('th', null, 'Students'),
+                                    ce('th', null, 'Status')
+                                )
+                            ),
+                            ce('tbody', null,
+                                exams.map(function (e) {
+                                    return ce('tr', { key: e.id },
+                                        ce('td', { className: 'td-id' }, e.id),
+                                        ce('td', { className: 'td-name' }, e.subject),
+                                        ce('td', null, e.date),
+                                        ce('td', null, e.time),
+                                        ce('td', null, e.duration),
+                                        ce('td', null, e.students),
+                                        ce('td', null, ce('span', { className: 'status-badge ' + statusColors[e.status] }, e.status))
+                                    );
+                                })
+                            )
+                        )
+                    )
+                )
+            );
+        }
+
+        // =============================================
+        // MODAL COMPONENT (shared)
+        // =============================================
+        function Modal(props) {
+            if (!props.open) return null;
+            return ce('div', { className: 'modal-overlay', onClick: function (e) { if (e.target === e.currentTarget) props.onClose(); } },
+                ce('div', { className: 'modal-card ' + (props.size || '') },
+                    ce('div', { className: 'modal-header' },
+                        ce('h2', { className: 'modal-title' }, props.title),
+                        ce('button', { className: 'modal-close-btn', onClick: props.onClose }, '\u2715')
+                    ),
+                    ce('div', { className: 'modal-body' }, props.children)
+                )
+            );
+        }
+
+        // =============================================
+        // FINANCE PAGE — Full Module
+        // =============================================
+        function FinancePage() {
+            // --- Tab State ---
+            var _tab = React.useState('course');
+            var activeTab = _tab[0]; var setActiveTab = _tab[1];
+
+            // --- Modal State ---
+            var _modal = React.useState({ open: false, type: '', data: null });
+            var modal = _modal[0]; var setModal = _modal[1];
+
+            function openModal(type, data) { setModal({ open: true, type: type, data: data || null }); }
+            function closeModal() { setModal({ open: false, type: '', data: null }); }
+
+            // ---- COURSE PAYMENTS DATA ----
+            var _cp = React.useState([
+                { id: 'PAY-3021', student: 'Sarah Chen', course: 'Advanced React', amount: 2450, method: 'Online Banking', plan: 'Full Payment', slip: 'slip_3021.jpg', date: '2026-02-24', enrollment: 'Paid', voided: false },
+                { id: 'PAY-3020', student: 'James Wilson', course: 'Python Fundamentals', amount: 1800, method: 'CDM', plan: 'Installment 1/3', slip: '', date: '2026-02-23', enrollment: 'Pending', voided: false },
+                { id: 'PAY-3019', student: 'Emily Davis', course: 'Data Science', amount: 3200, method: 'Online Banking', plan: 'Full Payment', slip: 'slip_3019.jpg', date: '2026-02-22', enrollment: 'Paid', voided: false },
+                { id: 'PAY-3018', student: 'Michael Brown', course: 'Web Design', amount: 2450, method: 'CDM', plan: 'Installment 2/3', slip: 'slip_3018.jpg', date: '2026-02-21', enrollment: 'Pending', voided: false },
+                { id: 'PAY-3017', student: 'Aisha Patel', course: 'Machine Learning', amount: 2800, method: 'Online Banking', plan: 'Full Payment', slip: 'slip_3017.jpg', date: '2026-02-20', enrollment: 'Paid', voided: false },
+                { id: 'PAY-3016', student: 'Carlos Rodriguez', course: 'Cybersecurity', amount: 1600, method: 'CDM', plan: 'Installment 1/2', slip: '', date: '2026-02-19', enrollment: 'Pending', voided: true },
+                { id: 'PAY-3015', student: 'Yuki Tanaka', course: 'Cloud Computing', amount: 2200, method: 'Online Banking', plan: 'Full Payment', slip: 'slip_3015.jpg', date: '2026-02-18', enrollment: 'Paid', voided: false },
+                { id: 'PAY-3014', student: 'Olivia Johnson', course: 'AI for Beginners', amount: 1950, method: 'CDM', plan: 'Installment 3/3', slip: 'slip_3014.jpg', date: '2026-02-17', enrollment: 'Paid', voided: false }
+            ]);
+            var coursePayments = _cp[0]; var setCoursePayments = _cp[1];
+
+            // ---- STAFF SALARIES DATA ----
+            var _ss = React.useState([
+                { id: 'SAL-201', name: 'Dr. Sarah Miller', role: 'Tutor', month: 'Feb 2026', amount: 4500, status: 'Paid', voided: false },
+                { id: 'SAL-202', name: 'Prof. John Smith', role: 'Tutor', month: 'Feb 2026', amount: 4200, status: 'Paid', voided: false },
+                { id: 'SAL-203', name: 'Raj Perera', role: 'Demonstrator', month: 'Feb 2026', amount: 2800, status: 'Paid', voided: false },
+                { id: 'SAL-204', name: 'Nimal Fernando', role: 'Demonstrator', month: 'Feb 2026', amount: 2800, status: 'Pending', voided: false },
+                { id: 'SAL-205', name: 'Kamala Silva', role: 'Typing Staff', month: 'Feb 2026', amount: 1800, status: 'Paid', voided: false },
+                { id: 'SAL-206', name: 'Anura Bandara', role: 'Typing Staff', month: 'Feb 2026', amount: 1800, status: 'Paid', voided: false },
+                { id: 'SAL-207', name: 'Dr. Emily Zhang', role: 'Tutor', month: 'Jan 2026', amount: 4500, status: 'Paid', voided: false },
+                { id: 'SAL-208', name: 'Ms. Lisa Park', role: 'Tutor', month: 'Jan 2026', amount: 4000, status: 'Paid', voided: true }
+            ]);
+            var staffSalaries = _ss[0]; var setStaffSalaries = _ss[1];
+
+            // ---- SUPPLIER PAYMENTS DATA ----
+            var _sp = React.useState([
+                { id: 'SUP-101', supplier: 'Lanka Paper Co.', item: 'A4 Paper (80gsm)', qty: 500, unitPrice: 3.20, date: '2026-02-22', status: 'Paid', voided: false },
+                { id: 'SUP-102', supplier: 'Island Stationers', item: 'A3 Paper (80gsm)', qty: 200, unitPrice: 5.50, date: '2026-02-20', status: 'Paid', voided: false },
+                { id: 'SUP-103', supplier: 'Lanka Paper Co.', item: 'A4 Paper (100gsm)', qty: 300, unitPrice: 4.00, date: '2026-02-18', status: 'Pending', voided: false },
+                { id: 'SUP-104', supplier: 'PrintMaster Supplies', item: 'A3 Paper (100gsm)', qty: 150, unitPrice: 6.80, date: '2026-02-15', status: 'Paid', voided: false },
+                { id: 'SUP-105', supplier: 'Island Stationers', item: 'A4 Paper (80gsm)', qty: 1000, unitPrice: 2.90, date: '2026-02-10', status: 'Paid', voided: true },
+                { id: 'SUP-106', supplier: 'Lanka Paper Co.', item: 'A3 Paper (80gsm)', qty: 250, unitPrice: 5.20, date: '2026-02-05', status: 'Paid', voided: false }
+            ]);
+            var supplierPayments = _sp[0]; var setSupplierPayments = _sp[1];
+
+            // ---- ID GENERATORS ----
+            var nextCpId = React.useRef(3022);
+            var nextSsId = React.useRef(209);
+            var nextSpId = React.useRef(107);
+
+            // ---- FORM STATE ----
+            var _form = React.useState({});
+            var form = _form[0]; var setForm = _form[1];
+            function updateForm(key, val) { setForm(function (prev) { var n = {}; for (var k in prev) n[k] = prev[k]; n[key] = val; return n; }); }
+
+            // ---- CRUD HANDLERS: Course Payments ----
+            function addCoursePayment() {
+                var newId = 'PAY-' + nextCpId.current++;
+                var rec = { id: newId, student: form.student || '', course: form.course || '', amount: parseFloat(form.amount) || 0, method: form.method || 'Online Banking', plan: form.plan || 'Full Payment', slip: form.slip || '', date: new Date().toISOString().slice(0, 10), enrollment: 'Pending', voided: false };
+                setCoursePayments(function (prev) { return [rec].concat(prev); });
+                closeModal();
+            }
+            function editCoursePayment() {
+                setCoursePayments(function (prev) { return prev.map(function (p) { if (p.id !== modal.data.id) return p; return { id: p.id, student: form.student || p.student, course: form.course || p.course, amount: parseFloat(form.amount) || p.amount, method: form.method || p.method, plan: form.plan || p.plan, slip: form.slip || p.slip, date: p.date, enrollment: form.enrollment || p.enrollment, voided: p.voided }; }); });
+                closeModal();
+            }
+            function voidCoursePayment(id) {
+                setCoursePayments(function (prev) { return prev.map(function (p) { if (p.id !== id) return p; var c = {}; for (var k in p) c[k] = p[k]; c.voided = true; return c; }); });
+            }
+            function deleteCoursePayment(id) {
+                setCoursePayments(function (prev) { return prev.filter(function (p) { return p.id !== id; }); });
+            }
+
+            // ---- CRUD HANDLERS: Staff Salaries ----
+            function addStaffSalary() {
+                var newId = 'SAL-' + nextSsId.current++;
+                var rec = { id: newId, name: form.name || '', role: form.role || 'Tutor', month: form.month || '', amount: parseFloat(form.amount) || 0, status: 'Pending', voided: false };
+                setStaffSalaries(function (prev) { return [rec].concat(prev); });
+                closeModal();
+            }
+            function editStaffSalary() {
+                setStaffSalaries(function (prev) { return prev.map(function (s) { if (s.id !== modal.data.id) return s; return { id: s.id, name: form.name || s.name, role: form.role || s.role, month: form.month || s.month, amount: parseFloat(form.amount) || s.amount, status: form.status || s.status, voided: s.voided }; }); });
+                closeModal();
+            }
+            function voidStaffSalary(id) {
+                setStaffSalaries(function (prev) { return prev.map(function (s) { if (s.id !== id) return s; var c = {}; for (var k in s) c[k] = s[k]; c.voided = true; return c; }); });
+            }
+            function deleteStaffSalary(id) {
+                setStaffSalaries(function (prev) { return prev.filter(function (s) { return s.id !== id; }); });
+            }
+
+            // ---- CRUD HANDLERS: Supplier Payments ----
+            function addSupplierPayment() {
+                var newId = 'SUP-' + nextSpId.current++;
+                var rec = { id: newId, supplier: form.supplier || '', item: form.item || '', qty: parseInt(form.qty) || 0, unitPrice: parseFloat(form.unitPrice) || 0, date: new Date().toISOString().slice(0, 10), status: 'Pending', voided: false };
+                setSupplierPayments(function (prev) { return [rec].concat(prev); });
+                closeModal();
+            }
+            function editSupplierPayment() {
+                setSupplierPayments(function (prev) { return prev.map(function (s) { if (s.id !== modal.data.id) return s; return { id: s.id, supplier: form.supplier || s.supplier, item: form.item || s.item, qty: parseInt(form.qty) || s.qty, unitPrice: parseFloat(form.unitPrice) || s.unitPrice, date: s.date, status: form.status || s.status, voided: s.voided }; }); });
+                closeModal();
+            }
+            function voidSupplierPayment(id) {
+                setSupplierPayments(function (prev) { return prev.map(function (s) { if (s.id !== id) return s; var c = {}; for (var k in s) c[k] = s[k]; c.voided = true; return c; }); });
+            }
+            function deleteSupplierPayment(id) {
+                setSupplierPayments(function (prev) { return prev.filter(function (s) { return s.id !== id; }); });
+            }
+
+            // ---- Open edit with pre-filled form ----
+            function openEdit(type, data) {
+                var f = {}; for (var k in data) f[k] = data[k];
+                setForm(f);
+                openModal(type, data);
+            }
+
+            // ---- Open add with empty form ----
+            function openAdd(type) {
+                setForm({});
+                openModal(type, null);
+            }
+
+            // ---- STATS ----
+            var totalCourseRev = coursePayments.filter(function (p) { return !p.voided; }).reduce(function (s, p) { return s + p.amount; }, 0);
+            var paidCount = coursePayments.filter(function (p) { return p.enrollment === 'Paid' && !p.voided; }).length;
+            var pendingCount = coursePayments.filter(function (p) { return p.enrollment === 'Pending' && !p.voided; }).length;
+            var totalSalaries = staffSalaries.filter(function (s) { return !s.voided; }).reduce(function (a, s) { return a + s.amount; }, 0);
+            var totalSupplier = supplierPayments.filter(function (s) { return !s.voided; }).reduce(function (a, s) { return a + (s.qty * s.unitPrice); }, 0);
+
+            // ====== MODAL CONTENT RENDER ======
+            function renderModalContent() {
+                var t = modal.type;
+                var d = modal.data;
+
+                // --- Receipt View ---
+                if (t === 'receipt') {
+                    return ce('div', { className: 'receipt-view' },
+                        ce('div', { className: 'receipt-header' },
+                            ce('div', { className: 'receipt-logo' }, '\uD83C\uDF93'),
+                            ce('h2', null, 'HiTech Educational Institute'),
+                            ce('p', null, 'Official Payment Receipt')
+                        ),
+                        ce('div', { className: 'receipt-divider' }),
+                        ce('div', { className: 'receipt-row' }, ce('span', null, 'Receipt No:'), ce('strong', null, d.id)),
+                        ce('div', { className: 'receipt-row' }, ce('span', null, 'Date:'), ce('strong', null, d.date)),
+                        ce('div', { className: 'receipt-row' }, ce('span', null, 'Student:'), ce('strong', null, d.student)),
+                        ce('div', { className: 'receipt-row' }, ce('span', null, 'Course:'), ce('strong', null, d.course)),
+                        ce('div', { className: 'receipt-row' }, ce('span', null, 'Payment Plan:'), ce('strong', null, d.plan)),
+                        ce('div', { className: 'receipt-row' }, ce('span', null, 'Method:'), ce('strong', null, d.method)),
+                        ce('div', { className: 'receipt-divider' }),
+                        ce('div', { className: 'receipt-row receipt-total' }, ce('span', null, 'Amount Paid:'), ce('strong', null, '$' + d.amount.toFixed(2))),
+                        ce('div', { className: 'receipt-row' }, ce('span', null, 'Status:'), ce('span', { className: 'status-badge ' + (d.enrollment === 'Paid' ? 'active' : 'warning') }, d.enrollment)),
+                        ce('div', { className: 'receipt-divider' }),
+                        ce('div', { className: 'receipt-footer' },
+                            ce('p', null, 'Thank you for your payment!'),
+                            ce('p', { className: 'receipt-small' }, 'This is a computer-generated receipt.')
+                        )
+                    );
+                }
+
+                // --- Void Confirm ---
+                if (t === 'void-confirm') {
+                    return ce('div', { className: 'void-confirm' },
+                        ce('div', { className: 'void-icon' }, '\u26A0\uFE0F'),
+                        ce('p', null, 'Are you sure you want to void record ', ce('strong', null, d.id), '?'),
+                        ce('p', { className: 'void-warning' }, 'This action marks the record as invalid. It cannot be undone.'),
+                        ce('div', { className: 'form-actions' },
+                            ce('button', { className: 'btn-secondary', onClick: closeModal }, 'Cancel'),
+                            ce('button', {
+                                className: 'btn-danger', onClick: function () {
+                                    if (d._voidType === 'course') voidCoursePayment(d.id);
+                                    else if (d._voidType === 'salary') voidStaffSalary(d.id);
+                                    else if (d._voidType === 'supplier') voidSupplierPayment(d.id);
+                                    closeModal();
+                                }
+                            }, 'Void Record')
+                        )
+                    );
+                }
+
+                // --- Add/Edit Course Payment ---
+                if (t === 'add-course' || t === 'edit-course') {
+                    var isEdit = t === 'edit-course';
+                    return ce('form', { onSubmit: function (e) { e.preventDefault(); isEdit ? editCoursePayment() : addCoursePayment(); } },
+                        ce('div', { className: 'form-row' },
+                            ce('div', { className: 'form-group' },
+                                ce('label', { className: 'form-label' }, 'Student Name'),
+                                ce('input', { className: 'form-input', value: form.student || '', onChange: function (e) { updateForm('student', e.target.value); }, required: true })
+                            ),
+                            ce('div', { className: 'form-group' },
+                                ce('label', { className: 'form-label' }, 'Course'),
+                                ce('select', { className: 'form-input', value: form.course || '', onChange: function (e) { updateForm('course', e.target.value); }, required: true },
+                                    ce('option', { value: '' }, '-- Select Course --'),
+                                    ['Advanced React', 'Python Fundamentals', 'Data Science', 'Machine Learning', 'Web Design', 'Cybersecurity', 'Cloud Computing', 'AI for Beginners'].map(function (c) {
+                                        return ce('option', { key: c, value: c }, c);
+                                    })
+                                )
+                            )
+                        ),
+                        ce('div', { className: 'form-row' },
+                            ce('div', { className: 'form-group' },
+                                ce('label', { className: 'form-label' }, 'Amount ($)'),
+                                ce('input', { className: 'form-input', type: 'number', step: '0.01', value: form.amount || '', onChange: function (e) { updateForm('amount', e.target.value); }, required: true })
+                            ),
+                            ce('div', { className: 'form-group' },
+                                ce('label', { className: 'form-label' }, 'Payment Method'),
+                                ce('select', { className: 'form-input', value: form.method || 'Online Banking', onChange: function (e) { updateForm('method', e.target.value); } },
+                                    ce('option', { value: 'Online Banking' }, 'Online Banking'),
+                                    ce('option', { value: 'CDM' }, 'CDM (Cash Deposit Machine)')
+                                )
+                            )
+                        ),
+                        ce('div', { className: 'form-row' },
+                            ce('div', { className: 'form-group' },
+                                ce('label', { className: 'form-label' }, 'Payment Plan'),
+                                ce('select', { className: 'form-input', value: form.plan || 'Full Payment', onChange: function (e) { updateForm('plan', e.target.value); } },
+                                    ce('option', { value: 'Full Payment' }, 'Full Payment'),
+                                    ce('option', { value: 'Installment 1/2' }, 'Installment 1 of 2'),
+                                    ce('option', { value: 'Installment 2/2' }, 'Installment 2 of 2'),
+                                    ce('option', { value: 'Installment 1/3' }, 'Installment 1 of 3'),
+                                    ce('option', { value: 'Installment 2/3' }, 'Installment 2 of 3'),
+                                    ce('option', { value: 'Installment 3/3' }, 'Installment 3 of 3')
+                                )
+                            ),
+                            isEdit ? ce('div', { className: 'form-group' },
+                                ce('label', { className: 'form-label' }, 'Enrollment Status'),
+                                ce('select', { className: 'form-input', value: form.enrollment || 'Pending', onChange: function (e) { updateForm('enrollment', e.target.value); } },
+                                    ce('option', { value: 'Pending' }, 'Pending'),
+                                    ce('option', { value: 'Paid' }, 'Paid')
+                                )
+                            ) : null
+                        ),
+                        ce('div', { className: 'form-group' },
+                            ce('label', { className: 'form-label' }, 'Upload Payment Slip'),
+                            ce('div', { className: 'file-upload-area' },
+                                ce('input', {
+                                    type: 'file', accept: 'image/*', className: 'file-input', id: 'slip-upload', onChange: function (e) {
+                                        var fname = e.target.files && e.target.files[0] ? e.target.files[0].name : '';
+                                        updateForm('slip', fname);
+                                    }
+                                }),
+                                ce('label', { htmlFor: 'slip-upload', className: 'file-upload-label' },
+                                    ce('span', { className: 'file-upload-icon' }, '\uD83D\uDCC4'),
+                                    ce('span', null, form.slip ? 'Selected: ' + form.slip : 'Click to upload payment slip'),
+                                    ce('span', { className: 'file-upload-hint' }, 'JPG, PNG or PDF')
+                                )
+                            )
+                        ),
+                        ce('div', { className: 'form-actions' },
+                            ce('button', { type: 'button', className: 'btn-secondary', onClick: closeModal }, 'Cancel'),
+                            ce('button', { type: 'submit', className: 'btn-primary' }, isEdit ? 'Update Payment' : 'Record Payment')
+                        )
+                    );
+                }
+
+                // --- Add/Edit Staff Salary ---
+                if (t === 'add-salary' || t === 'edit-salary') {
+                    var isEdit2 = t === 'edit-salary';
+                    return ce('form', { onSubmit: function (e) { e.preventDefault(); isEdit2 ? editStaffSalary() : addStaffSalary(); } },
+                        ce('div', { className: 'form-row' },
+                            ce('div', { className: 'form-group' },
+                                ce('label', { className: 'form-label' }, 'Staff Name'),
+                                ce('input', { className: 'form-input', value: form.name || '', onChange: function (e) { updateForm('name', e.target.value); }, required: true })
+                            ),
+                            ce('div', { className: 'form-group' },
+                                ce('label', { className: 'form-label' }, 'Role'),
+                                ce('select', { className: 'form-input', value: form.role || 'Tutor', onChange: function (e) { updateForm('role', e.target.value); } },
+                                    ce('option', { value: 'Tutor' }, 'Tutor'),
+                                    ce('option', { value: 'Demonstrator' }, 'Demonstrator'),
+                                    ce('option', { value: 'Typing Staff' }, 'Typing Staff')
+                                )
+                            )
+                        ),
+                        ce('div', { className: 'form-row' },
+                            ce('div', { className: 'form-group' },
+                                ce('label', { className: 'form-label' }, 'Month'),
+                                ce('input', { className: 'form-input', placeholder: 'e.g. Feb 2026', value: form.month || '', onChange: function (e) { updateForm('month', e.target.value); }, required: true })
+                            ),
+                            ce('div', { className: 'form-group' },
+                                ce('label', { className: 'form-label' }, 'Amount ($)'),
+                                ce('input', { className: 'form-input', type: 'number', step: '0.01', value: form.amount || '', onChange: function (e) { updateForm('amount', e.target.value); }, required: true })
+                            )
+                        ),
+                        isEdit2 ? ce('div', { className: 'form-group' },
+                            ce('label', { className: 'form-label' }, 'Status'),
+                            ce('select', { className: 'form-input', value: form.status || 'Pending', onChange: function (e) { updateForm('status', e.target.value); } },
+                                ce('option', { value: 'Pending' }, 'Pending'),
+                                ce('option', { value: 'Paid' }, 'Paid')
+                            )
+                        ) : null,
+                        ce('div', { className: 'form-actions' },
+                            ce('button', { type: 'button', className: 'btn-secondary', onClick: closeModal }, 'Cancel'),
+                            ce('button', { type: 'submit', className: 'btn-primary' }, isEdit2 ? 'Update Salary' : 'Add Salary')
+                        )
+                    );
+                }
+
+                // --- Add/Edit Supplier Payment ---
+                if (t === 'add-supplier' || t === 'edit-supplier') {
+                    var isEdit3 = t === 'edit-supplier';
+                    return ce('form', { onSubmit: function (e) { e.preventDefault(); isEdit3 ? editSupplierPayment() : addSupplierPayment(); } },
+                        ce('div', { className: 'form-row' },
+                            ce('div', { className: 'form-group' },
+                                ce('label', { className: 'form-label' }, 'Supplier Name'),
+                                ce('input', { className: 'form-input', value: form.supplier || '', onChange: function (e) { updateForm('supplier', e.target.value); }, required: true })
+                            ),
+                            ce('div', { className: 'form-group' },
+                                ce('label', { className: 'form-label' }, 'Item'),
+                                ce('select', { className: 'form-input', value: form.item || '', onChange: function (e) { updateForm('item', e.target.value); }, required: true },
+                                    ce('option', { value: '' }, '-- Select Item --'),
+                                    ce('option', { value: 'A4 Paper (80gsm)' }, 'A4 Paper (80gsm)'),
+                                    ce('option', { value: 'A4 Paper (100gsm)' }, 'A4 Paper (100gsm)'),
+                                    ce('option', { value: 'A3 Paper (80gsm)' }, 'A3 Paper (80gsm)'),
+                                    ce('option', { value: 'A3 Paper (100gsm)' }, 'A3 Paper (100gsm)')
+                                )
+                            )
+                        ),
+                        ce('div', { className: 'form-row' },
+                            ce('div', { className: 'form-group' },
+                                ce('label', { className: 'form-label' }, 'Quantity (reams)'),
+                                ce('input', { className: 'form-input', type: 'number', value: form.qty || '', onChange: function (e) { updateForm('qty', e.target.value); }, required: true })
+                            ),
+                            ce('div', { className: 'form-group' },
+                                ce('label', { className: 'form-label' }, 'Unit Price ($)'),
+                                ce('input', { className: 'form-input', type: 'number', step: '0.01', value: form.unitPrice || '', onChange: function (e) { updateForm('unitPrice', e.target.value); }, required: true })
+                            )
+                        ),
+                        isEdit3 ? ce('div', { className: 'form-group' },
+                            ce('label', { className: 'form-label' }, 'Status'),
+                            ce('select', { className: 'form-input', value: form.status || 'Pending', onChange: function (e) { updateForm('status', e.target.value); } },
+                                ce('option', { value: 'Pending' }, 'Pending'),
+                                ce('option', { value: 'Paid' }, 'Paid')
+                            )
+                        ) : null,
+                        ce('div', { className: 'form-actions' },
+                            ce('button', { type: 'button', className: 'btn-secondary', onClick: closeModal }, 'Cancel'),
+                            ce('button', { type: 'submit', className: 'btn-primary' }, isEdit3 ? 'Update Payment' : 'Add Payment')
+                        )
+                    );
+                }
+
+                return null;
+            }
+
+            // ====== TAB CONTENT RENDERERS ======
+
+            // --- Course Payments Tab ---
+            function renderCoursePayments() {
+                return ce(React.Fragment, null,
+                    ce('div', { className: 'page-header-bar' },
+                        ce('div', { className: 'page-stats-row' },
+                            ce('span', { className: 'page-stat' }, ce('strong', null, '$' + totalCourseRev.toLocaleString()), ' Revenue'),
+                            ce('span', { className: 'page-stat' }, ce('strong', null, paidCount), ' Paid'),
+                            ce('span', { className: 'page-stat' }, ce('strong', null, pendingCount), ' Pending')
+                        ),
+                        ce('button', { className: 'page-action-btn', onClick: function () { openAdd('add-course'); } }, '+ Record Payment')
+                    ),
+                    ce('div', { className: 'content-card' },
+                        ce('div', { className: 'table-wrapper' },
+                            ce('table', { className: 'page-table' },
+                                ce('thead', null,
+                                    ce('tr', null,
+                                        ce('th', null, 'ID'),
+                                        ce('th', null, 'Student'),
+                                        ce('th', null, 'Course'),
+                                        ce('th', null, 'Plan'),
+                                        ce('th', null, 'Method'),
+                                        ce('th', null, 'Amount'),
+                                        ce('th', null, 'Enrollment'),
+                                        ce('th', null, 'Slip'),
+                                        ce('th', null, 'Actions')
+                                    )
+                                ),
+                                ce('tbody', null,
+                                    coursePayments.map(function (p) {
+                                        var rowClass = p.voided ? 'voided-row' : '';
+                                        return ce('tr', { key: p.id, className: rowClass },
+                                            ce('td', { className: 'td-id' }, p.id, p.voided ? ce('span', { className: 'void-badge' }, 'VOID') : null),
+                                            ce('td', { className: 'td-name' }, p.student),
+                                            ce('td', null, p.course),
+                                            ce('td', null, ce('span', { className: 'plan-badge' }, p.plan)),
+                                            ce('td', null, p.method),
+                                            ce('td', { className: 'td-amount' }, '$' + p.amount.toFixed(2)),
+                                            ce('td', null, ce('span', { className: 'status-badge ' + (p.enrollment === 'Paid' ? 'active' : 'warning') }, p.enrollment)),
+                                            ce('td', null, p.slip ? ce('span', { className: 'slip-indicator', title: p.slip }, '\uD83D\uDCC4 Yes') : ce('span', { className: 'no-slip' }, '\u2014')),
+                                            ce('td', null,
+                                                ce('div', { className: 'action-btns' },
+                                                    !p.voided ? ce('button', { className: 'action-btn view', title: 'Receipt', onClick: function () { openModal('receipt', p); } }, '\uD83E\uDDFE') : null,
+                                                    !p.voided ? ce('button', { className: 'action-btn edit', title: 'Edit', onClick: function () { openEdit('edit-course', p); } }, '\u270F\uFE0F') : null,
+                                                    !p.voided ? ce('button', { className: 'action-btn void', title: 'Void', onClick: function () { var v = {}; for (var k in p) v[k] = p[k]; v._voidType = 'course'; openModal('void-confirm', v); } }, '\u26D4') : null,
+                                                    ce('button', { className: 'action-btn delete', title: 'Delete', onClick: function () { deleteCoursePayment(p.id); } }, '\uD83D\uDDD1\uFE0F')
+                                                )
+                                            )
+                                        );
+                                    })
+                                )
+                            )
+                        )
+                    )
+                );
+            }
+
+            // --- Staff Salaries Tab ---
+            function renderStaffSalaries() {
+                return ce(React.Fragment, null,
+                    ce('div', { className: 'page-header-bar' },
+                        ce('div', { className: 'page-stats-row' },
+                            ce('span', { className: 'page-stat' }, ce('strong', null, '$' + totalSalaries.toLocaleString()), ' Total'),
+                            ce('span', { className: 'page-stat' }, ce('strong', null, staffSalaries.filter(function (s) { return s.role === 'Tutor' && !s.voided; }).length), ' Tutors'),
+                            ce('span', { className: 'page-stat' }, ce('strong', null, staffSalaries.filter(function (s) { return s.role === 'Demonstrator' && !s.voided; }).length), ' Demonstrators'),
+                            ce('span', { className: 'page-stat' }, ce('strong', null, staffSalaries.filter(function (s) { return s.role === 'Typing Staff' && !s.voided; }).length), ' Typing Staff')
+                        ),
+                        ce('button', { className: 'page-action-btn', onClick: function () { openAdd('add-salary'); } }, '+ Add Salary')
+                    ),
+                    ce('div', { className: 'content-card' },
+                        ce('div', { className: 'table-wrapper' },
+                            ce('table', { className: 'page-table' },
+                                ce('thead', null,
+                                    ce('tr', null,
+                                        ce('th', null, 'ID'),
+                                        ce('th', null, 'Name'),
+                                        ce('th', null, 'Role'),
+                                        ce('th', null, 'Month'),
+                                        ce('th', null, 'Amount'),
+                                        ce('th', null, 'Status'),
+                                        ce('th', null, 'Actions')
+                                    )
+                                ),
+                                ce('tbody', null,
+                                    staffSalaries.map(function (s) {
+                                        var rowClass = s.voided ? 'voided-row' : '';
+                                        var roleColors = { 'Tutor': 'purple', 'Demonstrator': 'info', 'Typing Staff': 'active' };
+                                        return ce('tr', { key: s.id, className: rowClass },
+                                            ce('td', { className: 'td-id' }, s.id, s.voided ? ce('span', { className: 'void-badge' }, 'VOID') : null),
+                                            ce('td', { className: 'td-name' }, s.name),
+                                            ce('td', null, ce('span', { className: 'status-badge ' + roleColors[s.role] }, s.role)),
+                                            ce('td', null, s.month),
+                                            ce('td', { className: 'td-amount' }, '$' + s.amount.toFixed(2)),
+                                            ce('td', null, ce('span', { className: 'status-badge ' + (s.status === 'Paid' ? 'active' : 'warning') }, s.status)),
+                                            ce('td', null,
+                                                ce('div', { className: 'action-btns' },
+                                                    !s.voided ? ce('button', { className: 'action-btn edit', title: 'Edit', onClick: function () { openEdit('edit-salary', s); } }, '\u270F\uFE0F') : null,
+                                                    !s.voided ? ce('button', { className: 'action-btn void', title: 'Void', onClick: function () { var v = {}; for (var k in s) v[k] = s[k]; v._voidType = 'salary'; openModal('void-confirm', v); } }, '\u26D4') : null,
+                                                    ce('button', { className: 'action-btn delete', title: 'Delete', onClick: function () { deleteStaffSalary(s.id); } }, '\uD83D\uDDD1\uFE0F')
+                                                )
+                                            )
+                                        );
+                                    })
+                                )
+                            )
+                        )
+                    )
+                );
+            }
+
+            // --- Supplier Payments Tab ---
+            function renderSupplierPayments() {
+                return ce(React.Fragment, null,
+                    ce('div', { className: 'page-header-bar' },
+                        ce('div', { className: 'page-stats-row' },
+                            ce('span', { className: 'page-stat' }, ce('strong', null, '$' + totalSupplier.toFixed(2)), ' Total'),
+                            ce('span', { className: 'page-stat' }, ce('strong', null, supplierPayments.filter(function (s) { return !s.voided; }).length), ' Records')
+                        ),
+                        ce('button', { className: 'page-action-btn', onClick: function () { openAdd('add-supplier'); } }, '+ Add Payment')
+                    ),
+                    ce('div', { className: 'content-card' },
+                        ce('div', { className: 'table-wrapper' },
+                            ce('table', { className: 'page-table' },
+                                ce('thead', null,
+                                    ce('tr', null,
+                                        ce('th', null, 'ID'),
+                                        ce('th', null, 'Supplier'),
+                                        ce('th', null, 'Item'),
+                                        ce('th', null, 'Qty'),
+                                        ce('th', null, 'Unit Price'),
+                                        ce('th', null, 'Total'),
+                                        ce('th', null, 'Date'),
+                                        ce('th', null, 'Status'),
+                                        ce('th', null, 'Actions')
+                                    )
+                                ),
+                                ce('tbody', null,
+                                    supplierPayments.map(function (s) {
+                                        var rowClass = s.voided ? 'voided-row' : '';
+                                        var total = (s.qty * s.unitPrice).toFixed(2);
+                                        return ce('tr', { key: s.id, className: rowClass },
+                                            ce('td', { className: 'td-id' }, s.id, s.voided ? ce('span', { className: 'void-badge' }, 'VOID') : null),
+                                            ce('td', { className: 'td-name' }, s.supplier),
+                                            ce('td', null, s.item),
+                                            ce('td', null, s.qty),
+                                            ce('td', null, '$' + s.unitPrice.toFixed(2)),
+                                            ce('td', { className: 'td-amount' }, '$' + total),
+                                            ce('td', null, s.date),
+                                            ce('td', null, ce('span', { className: 'status-badge ' + (s.status === 'Paid' ? 'active' : 'warning') }, s.status)),
+                                            ce('td', null,
+                                                ce('div', { className: 'action-btns' },
+                                                    !s.voided ? ce('button', { className: 'action-btn edit', title: 'Edit', onClick: function () { openEdit('edit-supplier', s); } }, '\u270F\uFE0F') : null,
+                                                    !s.voided ? ce('button', { className: 'action-btn void', title: 'Void', onClick: function () { var v = {}; for (var k in s) v[k] = s[k]; v._voidType = 'supplier'; openModal('void-confirm', v); } }, '\u26D4') : null,
+                                                    ce('button', { className: 'action-btn delete', title: 'Delete', onClick: function () { deleteSupplierPayment(s.id); } }, '\uD83D\uDDD1\uFE0F')
+                                                )
+                                            )
+                                        );
+                                    })
+                                )
+                            )
+                        )
+                    )
+                );
+            }
+
+            // ====== TABS CONFIG ======
+            var tabs = [
+                { key: 'course', icon: '\uD83C\uDF93', label: 'Course Payments' },
+                { key: 'salary', icon: '\uD83D\uDC65', label: 'Staff Salaries' },
+                { key: 'supplier', icon: '\uD83D\uDCE6', label: 'Supplier Payments' }
+            ];
+
+            // ====== MODAL TITLES ======
+            var modalTitles = {
+                'add-course': '\uD83D\uDCB3 Record Course Payment',
+                'edit-course': '\u270F\uFE0F Edit Course Payment',
+                'add-salary': '\uD83D\uDCB0 Add Staff Salary',
+                'edit-salary': '\u270F\uFE0F Edit Staff Salary',
+                'add-supplier': '\uD83D\uDCE6 Add Supplier Payment',
+                'edit-supplier': '\u270F\uFE0F Edit Supplier Payment',
+                'receipt': '\uD83E\uDDFE Payment Receipt',
+                'void-confirm': '\u26D4 Void Record'
+            };
+
+            return ce(DashboardLayout, {
+                currentRoute: '/finance',
+                pageTitle: 'Finance Management',
+                pageSubtitle: 'Manage payments, salaries, and supplier invoices.'
+            },
+                // Tab Navigation
+                ce('div', { className: 'finance-tabs' },
+                    tabs.map(function (tab) {
+                        return ce('button', {
+                            key: tab.key,
+                            className: 'finance-tab' + (activeTab === tab.key ? ' active' : ''),
+                            onClick: function () { setActiveTab(tab.key); }
+                        }, ce('span', { className: 'tab-icon' }, tab.icon), ' ', tab.label);
+                    })
+                ),
+
+                // Tab Content
+                activeTab === 'course' ? renderCoursePayments() : null,
+                activeTab === 'salary' ? renderStaffSalaries() : null,
+                activeTab === 'supplier' ? renderSupplierPayments() : null,
+
+                // Modal
+                ce(Modal, {
+                    open: modal.open,
+                    title: modalTitles[modal.type] || '',
+                    onClose: closeModal,
+                    size: modal.type === 'receipt' ? 'modal-receipt' : ''
+                }, renderModalContent())
+            );
+        }
+
+        // =============================================
+        // HELPDESK PAGE
+        // =============================================
+        function HelpdeskPage() {
+            var tickets = [
+                { id: 'TKT-401', subject: 'Cannot access course materials', requester: 'Sarah Chen', priority: 'High', status: 'Open', created: '2 hours ago' },
+                { id: 'TKT-400', subject: 'Payment failed but amount deducted', requester: 'Carlos Rodriguez', priority: 'Urgent', status: 'In Progress', created: '3 hours ago' },
+                { id: 'TKT-399', subject: 'Certificate not generated', requester: 'Yuki Tanaka', priority: 'Medium', status: 'Open', created: '5 hours ago' },
+                { id: 'TKT-398', subject: 'Video playback issues', requester: 'Emily Davis', priority: 'Low', status: 'Open', created: '1 day ago' },
+                { id: 'TKT-397', subject: 'Need to change enrolled course', requester: 'Michael Brown', priority: 'Medium', status: 'In Progress', created: '1 day ago' },
+                { id: 'TKT-396', subject: 'Login issues with new device', requester: 'Aisha Patel', priority: 'High', status: 'Resolved', created: '2 days ago' },
+                { id: 'TKT-395', subject: 'Request for transcript', requester: 'James Wilson', priority: 'Low', status: 'Resolved', created: '2 days ago' },
+                { id: 'TKT-394', subject: 'Exam date conflict', requester: 'Olivia Johnson', priority: 'High', status: 'Closed', created: '3 days ago' }
+            ];
+
+            var priorityColors = { 'Urgent': 'danger', 'High': 'warning', 'Medium': 'info', 'Low': 'active' };
+            var statusColors = { 'Open': 'warning', 'In Progress': 'info', 'Resolved': 'active', 'Closed': 'purple' };
+
+            return ce(DashboardLayout, {
+                currentRoute: '/helpdesk',
+                pageTitle: 'Helpdesk',
+                pageSubtitle: 'Manage support tickets and student requests.'
+            },
+                ce('div', { className: 'page-header-bar' },
+                    ce('div', { className: 'page-stats-row' },
+                        ce('span', { className: 'page-stat' }, ce('strong', null, '12'), ' Open'),
+                        ce('span', { className: 'page-stat' }, ce('strong', null, '5'), ' In Progress'),
+                        ce('span', { className: 'page-stat' }, ce('strong', null, '234'), ' Resolved')
+                    ),
+                    ce('button', { className: 'page-action-btn' }, '+ New Ticket')
+                ),
+                ce('div', { className: 'ticket-grid' },
+                    tickets.map(function (t) {
+                        return ce('div', { className: 'ticket-card', key: t.id },
+                            ce('div', { className: 'ticket-card-header' },
+                                ce('span', { className: 'td-id' }, t.id),
+                                ce('span', { className: 'status-badge ' + statusColors[t.status] }, t.status)
+                            ),
+                            ce('h3', { className: 'ticket-subject' }, t.subject),
+                            ce('div', { className: 'ticket-meta' },
+                                ce('span', null, '\uD83D\uDC64 ' + t.requester),
+                                ce('span', { className: 'status-badge ' + priorityColors[t.priority] }, t.priority)
+                            ),
+                            ce('div', { className: 'ticket-time' }, '\uD83D\uDD52 ' + t.created)
+                        );
+                    })
+                )
+            );
+        }
+
+        // =============================================
+        // SETTINGS PAGE
+        // =============================================
+        function SettingsPage() {
+            var auth = JSON.parse(localStorage.getItem('hitech_auth') || '{}');
+
+            return ce(DashboardLayout, {
+                currentRoute: '/settings',
+                pageTitle: 'Settings',
+                pageSubtitle: 'Manage your account and preferences.'
+            },
+                // Profile Section
+                ce('div', { className: 'content-card settings-section' },
+                    ce('h3', { className: 'settings-section-title' }, '\uD83D\uDC64 Profile Information'),
+                    ce('div', { className: 'settings-grid' },
+                        ce('div', { className: 'settings-field' },
+                            ce('label', { className: 'form-label' }, 'Full Name'),
+                            ce('input', { className: 'form-input', type: 'text', defaultValue: auth.user || 'Admin', readOnly: true })
+                        ),
+                        ce('div', { className: 'settings-field' },
+                            ce('label', { className: 'form-label' }, 'Email Address'),
+                            ce('input', { className: 'form-input', type: 'email', defaultValue: auth.email || 'admin@hitech.edu', readOnly: true })
+                        ),
+                        ce('div', { className: 'settings-field' },
+                            ce('label', { className: 'form-label' }, 'Role'),
+                            ce('input', { className: 'form-input', type: 'text', defaultValue: auth.role || 'Administrator', readOnly: true })
+                        ),
+                        ce('div', { className: 'settings-field' },
+                            ce('label', { className: 'form-label' }, 'Phone'),
+                            ce('input', { className: 'form-input', type: 'tel', defaultValue: '+1 (555) 123-4567', readOnly: true })
+                        )
+                    )
+                ),
+
+                // Notifications Section
+                ce('div', { className: 'content-card settings-section' },
+                    ce('h3', { className: 'settings-section-title' }, '\uD83D\uDD14 Notification Preferences'),
+                    ce('div', { className: 'settings-toggle-list' },
+                        ['Email Notifications', 'Push Notifications', 'SMS Alerts', 'Weekly Digest'].map(function (label, i) {
+                            return ce('div', { className: 'settings-toggle-row', key: 'n' + i },
+                                ce('span', null, label),
+                                ce('div', { className: 'toggle-switch' + (i < 2 ? ' on' : '') },
+                                    ce('div', { className: 'toggle-knob' })
+                                )
+                            );
+                        })
+                    )
+                ),
+
+                // Appearance Section
+                ce('div', { className: 'content-card settings-section' },
+                    ce('h3', { className: 'settings-section-title' }, '\uD83C\uDFA8 Appearance'),
+                    ce('div', { className: 'settings-toggle-list' },
+                        ['Dark Mode', 'Compact Sidebar', 'Animations'].map(function (label, i) {
+                            return ce('div', { className: 'settings-toggle-row', key: 'a' + i },
+                                ce('span', null, label),
+                                ce('div', { className: 'toggle-switch' + (i === 0 || i === 2 ? ' on' : '') },
+                                    ce('div', { className: 'toggle-knob' })
+                                )
+                            );
+                        })
+                    )
+                )
+            );
+        }
+
+        // =============================================
+        // APP — uses custom hash routing
+        // =============================================
+        function App() {
+            var hash = useHash();
+            var isAuthenticated = !!localStorage.getItem('hitech_auth');
+            var route = hash.replace('#', '') || '/';
+
+            if (!isAuthenticated) {
+                return ce(Login, null);
+            }
+
+            switch (route) {
+                case '/dashboard': return ce(DashboardPage, null);
+                case '/students': return ce(StudentsPage, null);
+                case '/courses': return ce(CoursesPage, null);
+                case '/exams': return ce(ExamsPage, null);
+                case '/finance': return ce(FinancePage, null);
+                case '/helpdesk': return ce(HelpdeskPage, null);
+                case '/settings': return ce(SettingsPage, null);
+                default: return ce(DashboardPage, null);
+            }
+        }
+
+        // ---- Mount ----
+        var rootEl = document.getElementById('root');
+        var root = ReactDOM.createRoot(rootEl);
+        root.render(ce(App, null));
+    </script>
+</body>
+
+</html>
